@@ -15,7 +15,7 @@ from ..models import QueryParams
 from ..utils import build_ui_links
 from ..utils.query import apply_filter, apply_sort, apply_pagination
 from ..auth.dependencies import check_permission
-from .base import Plugin, ResourceDescriptor, PluginContext, ensure_file
+from .base import Plugin, ResourceDescriptor, PluginContext, SearchDocument, ensure_file
 
 logger = logging.getLogger(__name__)
 
@@ -131,6 +131,44 @@ class DatasetPlugin(Plugin):
         
         logger.debug("Read %d rows from %s", len(rows), resource.path)
         return rows
+
+    def index(self, resource: ResourceDescriptor) -> Sequence[SearchDocument]:
+        """Yield one search document per row, covering CSV, Excel and Parquet.
+
+        Column names are folded into the body text so a query like "email"
+        matches the column as well as its values.
+
+        The `doc_ref` is the 1-based row index over the *raw* rows. That matches
+        the `_row_id` assigned by `read()` for plugins using the default
+        `filter_for_user`; a plugin that overrides it for row-level security
+        will see the two diverge, and should not rely on `doc_ref` as a key.
+        """
+        header = resource.metadata.get("header", [])
+        documents: list[SearchDocument] = []
+
+        for row_id, row in enumerate(self._read_raw_rows(resource), start=1):
+            parts: list[str] = []
+            title = ""
+            for idx, value in enumerate(row):
+                if value is None:
+                    continue
+                text = str(value).strip()
+                if not text:
+                    continue
+                column = header[idx] if idx < len(header) else f"column_{idx + 1}"
+                parts.append(f"{column}: {text}")
+                if not title:
+                    title = text
+            if not parts:
+                continue
+            documents.append(SearchDocument(
+                title=title,
+                body=" | ".join(parts),
+                doc_ref=str(row_id),
+            ))
+
+        logger.debug("Indexed %d rows from %s", len(documents), resource.path)
+        return documents
 
     def _convert_value(self, value: str, col_type: str) -> Any:
         """Convert a string value to the appropriate type."""

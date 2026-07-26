@@ -47,7 +47,9 @@ def test_markdown_plugin_read(sample_md):
     descriptor = plugin.load(sample_md)
     request = Request(scope={"type": "http", "method": "GET", "path": "/"})
     content = plugin.read(descriptor, request)
-    assert "<h1>Test</h1>" in content
+    # Rendered with the "toc" extension so headings carry ids; search results
+    # deep-link to those anchors.
+    assert '<h1 id="test">Test</h1>' in content
     assert "<p>This is a test.</p>" in content
 
 

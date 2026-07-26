@@ -2,7 +2,10 @@ from __future__ import annotations
 import logging
 from adapt.cache import get_cache, set_cache
 
+import re
+
 import markdown
+from markdown.extensions.toc import slugify
 from pathlib import Path
 from typing import Any, Sequence
 
@@ -11,10 +14,15 @@ from fastapi.responses import HTMLResponse
 from fastapi.routing import APIRouter
 
 from ..utils import build_ui_links
-from .base import Plugin, ResourceDescriptor, PluginContext
+from .base import Plugin, ResourceDescriptor, PluginContext, SearchDocument
 
 
 logger = logging.getLogger(__name__)
+
+# Rendered with the "toc" extension so heading ids exist for search deep links.
+MARKDOWN_EXTENSIONS = ["toc"]
+
+_HEADING_RE = re.compile(r"^(#{1,6})\s+(.*?)\s*#*$", re.MULTILINE)
 
 
 class MarkdownPlugin(Plugin):
@@ -108,6 +116,44 @@ class MarkdownPlugin(Plugin):
         logger.debug(f"Cache miss, reading and converting Markdown: {resource.path}")
         with open(resource.path, 'r', encoding='utf-8') as f:
             md_content = f.read()
-        html_content = markdown.markdown(md_content)
+        html_content = markdown.markdown(md_content, extensions=MARKDOWN_EXTENSIONS)
         set_cache(cache_key, html_content, ttl_seconds=600, resource=str(resource.path))  # 10 min TTL
         return html_content
+
+    def index(self, resource: ResourceDescriptor) -> Sequence[SearchDocument]:
+        """Yield one search document per heading section of the raw Markdown.
+
+        The raw source is indexed rather than the rendered HTML, so hits carry
+        clean text. Section anchors match the ids the "toc" extension emits, so
+        a result deep-links to the right heading.
+        """
+        text = resource.path.read_text(encoding="utf-8", errors="replace")
+        stem = resource.path.stem
+
+        matches = list(_HEADING_RE.finditer(text))
+        if not matches:
+            body = text.strip()
+            if not body:
+                return []
+            return [SearchDocument(title=stem, body=body)]
+
+        documents: list[SearchDocument] = []
+
+        preamble = text[: matches[0].start()].strip()
+        if preamble:
+            documents.append(SearchDocument(title=stem, body=preamble))
+
+        for position, match in enumerate(matches):
+            heading = match.group(2).strip()
+            end = matches[position + 1].start() if position + 1 < len(matches) else len(text)
+            section = text[match.end():end].strip()
+            anchor = slugify(heading, "-")
+            documents.append(SearchDocument(
+                title=heading or stem,
+                body=f"{heading}\n{section}".strip(),
+                doc_ref=anchor,
+                url_suffix=f"#{anchor}" if anchor else "",
+            ))
+
+        logger.debug("Indexed %d sections from %s", len(documents), resource.path)
+        return documents

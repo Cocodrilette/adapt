@@ -36,6 +36,15 @@ class ResourceDescriptor:
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
+@dataclass
+class SearchDocument:
+    """A single unit of indexable content yielded by Plugin.index()."""
+    title: str
+    body: str
+    doc_ref: str | None = None
+    url_suffix: str = ""
+
+
 class Plugin(ABC):
     """Abstract base class for all plugins."""
     
@@ -67,6 +76,21 @@ class Plugin(ABC):
     def get_route_configs(self, descriptor: ResourceDescriptor) -> list[tuple[str, APIRouter]]:
         """Return list of (prefix, router) tuples for mounting routes."""
         logger.debug(f"Getting route configs for resource: {descriptor.path}")
+        return []
+
+    def index(self, resource: ResourceDescriptor) -> Iterable[SearchDocument]:
+        """Yield documents for the full-text search index.
+
+        The default returns nothing, so a resource is simply not searchable
+        unless its plugin opts in.
+
+        Note that the index is user-agnostic: `filter_for_user` is deliberately
+        NOT applied here, because one index is shared by every user. Row-level
+        security is enforced when a hit is followed to its API or UI route, and
+        resource-level permissions are enforced when results are returned. If a
+        plugin's rows are sensitive per-user beyond that, do not index them.
+        """
+        logger.debug(f"Resource not indexable: {resource.path}")
         return []
 
     def filter_for_user(self, resource: ResourceDescriptor, user: Any, rows: Iterable[Any]) -> Iterable[Any]:

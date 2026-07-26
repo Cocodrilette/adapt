@@ -16,7 +16,7 @@ from moviepy import VideoFileClip
 from PIL import Image
 import numpy as np
 
-from .base import Plugin, ResourceDescriptor, PluginContext
+from .base import Plugin, ResourceDescriptor, PluginContext, SearchDocument
 from ..security_urls import login_redirect_url
 
 
@@ -76,6 +76,25 @@ class MediaPlugin(Plugin):
             logger.warning(f"Failed to extract metadata for {path}: {e}")
         set_cache(cache_key, descriptor.metadata, ttl_seconds=1800, resource=str(path))  # 30 min TTL
         return descriptor
+
+    def index(self, resource: ResourceDescriptor) -> Sequence[SearchDocument]:
+        """Yield one document per media file from its filename and tags.
+
+        Only metadata is indexed; the audio itself is not transcribed. A future
+        transcription step would extend the body text here.
+        """
+        metadata = resource.metadata
+        # Filename words are searchable too: "onboarding-safety.mp4" should
+        # match a query for "safety".
+        parts = [resource.path.stem.replace("-", " ").replace("_", " ")]
+        for key in ("title", "artist", "album", "genre"):
+            value = metadata.get(key)
+            if value:
+                parts.append(f"{key}: {value}")
+        parts.append(f"type: {metadata.get('media_type', 'unknown')}")
+
+        title = metadata.get("title") or resource.path.name
+        return [SearchDocument(title=title, body=" | ".join(parts))]
 
     def schema(self, resource: ResourceDescriptor) -> dict[str, Any]:
         """Get the schema for the media resource.
