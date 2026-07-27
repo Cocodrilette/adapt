@@ -158,6 +158,59 @@ Example:
 
 - `reports.py` with `@router.get("/summary")` -> `/api/reports/summary`
 
+## Search Endpoint
+
+**GET** `/search`
+
+Full-text search across every resource the caller is permitted to read —
+datasets, Markdown, HTML, and media metadata all rank in one result list.
+Results are filtered by permission *after* the index is queried, so `count`
+never reveals the existence of a resource the caller cannot see.
+
+Query parameters:
+
+- `q` (optional; empty returns no results)
+- `limit` (optional, default `20`, max `100`)
+- `offset` (optional, default `0`)
+- `type` (optional, comma-separated resource types, e.g. `csv,markdown`)
+
+Example:
+
+```bash
+curl -H "X-API-Key: key" "http://localhost:8000/search?q=parental+leave&type=csv,markdown"
+```
+
+Returns JSON by default, or an HTML results page when the client sends
+`Accept: text/html`. Each result includes `resource`, `type`, `title`,
+`snippet`, `score`, and `ui_url`; dataset row hits also include `api_url` and
+`row_id`.
+
+The index is rebuilt incrementally on server startup (`search_on_startup`,
+default `true`) and can be rebuilt on demand:
+
+```bash
+adapt reindex /path/to/docroot [--force]
+```
+
+## MCP Interface
+
+Adapt mounts a [Model Context Protocol](https://modelcontextprotocol.io)
+server at `/mcp`, exposing the same permission-filtered read/write/search
+functionality as tools for agentic clients. See the [MCP Guide](mcp_guide)
+for a full walkthrough from account creation to connecting a client.
+
+| Tool | Equivalent to |
+|---|---|
+| `list_resources` | `GET /` (JSON) |
+| `get_schema` | `GET /schema/{resource}` |
+| `read_resource` | `GET /api/{resource}` |
+| `write_resource` | `POST`/`PATCH`/`DELETE /api/{resource}` |
+| `search` | `GET /search` |
+
+Every tool requires an `X-API-Key` header — MCP has no session-cookie or
+anonymous path. Set `mcp_enabled: false` in `.adapt/conf.json` (or
+`ADAPT_MCP_ENABLED=false`) to remove `/mcp` entirely.
+
 ## Admin Endpoints
 
 All admin endpoints require superuser authentication and are prefixed with `/admin`.

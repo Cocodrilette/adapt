@@ -11,10 +11,11 @@ Welcome to the comprehensive manual for Adapt, the adaptive file-backed web serv
 5. [API Reference](api_reference.md) - Complete API documentation
 6. [Admin Guide](admin_guide.md) - Managing users, permissions, and system administration
 7. [Security](security.md) - Authentication, authorization, and security features
-8. [Configuration](configuration.md) - Configuration options and CLI commands
-9. [Plugin Development](plugin_development.md) - Creating custom plugins
-10. [Architecture](architecture.md) - Internal architecture and design
-11. [Troubleshooting](troubleshooting.md) - Common issues and solutions
+8. [MCP Guide](mcp_guide.md) - Connecting agentic tools via the Model Context Protocol
+9. [Configuration](configuration.md) - Configuration options and CLI commands
+10. [Plugin Development](plugin_development.md) - Creating custom plugins
+11. [Architecture](architecture.md) - Internal architecture and design
+12. [Troubleshooting](troubleshooting.md) - Common issues and solutions
 
 ## About This Manual
 

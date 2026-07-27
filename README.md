@@ -6,6 +6,8 @@ Adapt is a FastAPI server that turns files in a directory into APIs and UIs.
 - Markdown/HTML become browsable pages
 - Media files become streaming endpoints and player/gallery UIs
 - Python files can register custom routers
+- Everything is searchable in one place via full-text `/search`
+- Everything is reachable by agentic tools via an MCP server at `/mcp`
 
 ## Quick Start
 
@@ -36,6 +38,8 @@ Useful URLs:
 - `/api/<resource>` resource API
 - `/ui/<resource>` resource UI
 - `/schema/<resource>` resource schema
+- `/search` full-text search across every resource you can read
+- `/mcp` MCP server for agentic tools (see [MCP Interface](#mcp-interface) below)
 
 ## What Adapt Generates
 
@@ -90,6 +94,73 @@ This reflects the current implementation in the codebase.
 - Caching with invalidation on mutations
 - Built-in admin UI for users/groups/permissions/locks/cache/api keys/audit logs
 - Plugin architecture with companion overrides in `.adapt/`
+- Permission-filtered full-text search across every resource type
+- MCP server for agentic tool access, mounted alongside the REST API
+
+## Full-Text Search
+
+`GET /search?q=<query>` searches datasets, Markdown, HTML, and media metadata
+in one ranked list, filtered to what the caller may read — a query term that
+matches a resource you can't see never shows up, and never leaks via the
+result count either.
+
+```bash
+curl -H "X-API-Key: <key>" "http://localhost:8000/search?q=parental+leave"
+```
+
+The index refreshes incrementally on startup (`search_on_startup`, default
+`true`) and can be rebuilt on demand with `adapt reindex <root>`. See the
+[API Reference](docs/manual/api_reference.md#search-endpoint) for query
+parameters and result shape.
+
+## MCP Interface
+
+Adapt mounts a [Model Context Protocol](https://modelcontextprotocol.io)
+server at `/mcp`, on the same host/port as everything else, exposing five
+tools that wrap the same permission checks and plugin methods as the REST
+API — `list_resources`, `get_schema`, `read_resource`, `write_resource`, and
+`search`. There's no separate process, no separate API surface, and no
+extra permission model to maintain.
+
+Minimal walkthrough — create an account for the agent, grant it read access,
+mint an API key, and connect a client:
+
+```bash
+adapt addsuperuser /path/to/docroot --username admin
+adapt serve /path/to/docroot &
+
+adapt admin create-permissions /path/to/docroot __all__
+adapt admin create-user /path/to/docroot --username agent --password <strong-password>
+adapt admin add-to-group /path/to/docroot --username agent --group <resource>_readonly
+```
+
+Log in as `agent` and self-issue an API key from `/profile` (any
+authenticated user can create their own key — no superuser needed), then
+point a client at `/mcp` with that key:
+
+```bash
+# Claude Code CLI
+claude mcp add --transport http adapt http://localhost:8000/mcp \
+  --header "X-API-Key: <key>"
+```
+
+```json
+// Generic MCP client config (Claude Desktop and similar)
+{
+  "mcpServers": {
+    "adapt": {
+      "url": "http://localhost:8000/mcp",
+      "headers": { "X-API-Key": "<key>" }
+    }
+  }
+}
+```
+
+MCP requires an API key on every call — there's no session-cookie or
+anonymous path, since MCP has no concept of a browser session. Set
+`mcp_enabled: false` in `.adapt/conf.json` (or `ADAPT_MCP_ENABLED=false`) to
+remove `/mcp` entirely. Full walkthrough, troubleshooting, and the tool
+reference table: [docs/manual/mcp_guide.md](docs/manual/mcp_guide.md).
 
 ## Dataset Mutation Envelope
 
@@ -111,6 +182,7 @@ adapt serve <root> [--host ... --port ... --tls-cert ... --tls-key ... --reload 
 adapt check <root>
 adapt addsuperuser <root> --username <name>
 adapt list-endpoints <root>
+adapt reindex <root> [--force]
 adapt admin list-resources <root>
 adapt admin create-permissions <root> __all__
 ```
@@ -124,6 +196,7 @@ Detailed docs live under `docs/manual/`.
 - Quick start: [docs/manual/quick_start.md](docs/manual/quick_start.md)
 - Configuration: [docs/manual/configuration.md](docs/manual/configuration.md)
 - API reference: [docs/manual/api_reference.md](docs/manual/api_reference.md)
+- MCP guide: [docs/manual/mcp_guide.md](docs/manual/mcp_guide.md)
 - Plugin development: [docs/manual/plugin_development.md](docs/manual/plugin_development.md)
 
 ## License

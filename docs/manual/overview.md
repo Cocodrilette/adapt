@@ -17,6 +17,8 @@ Adapt is a lightweight, FastAPI-powered adaptive server that automatically turns
 - **Caching System**: SQLite-backed caching for performance optimization
 - **Plugin Architecture**: Extensible system for supporting new file types and handlers
 - **Safe Writes**: Atomic file operations with locking to prevent data corruption
+- **Full-Text Search**: Permission-filtered search (`/search`) across datasets, documents, and media metadata in one ranked list
+- **MCP Interface**: An agent-facing [Model Context Protocol](https://modelcontextprotocol.io) server at `/mcp`, exposing the same permission-filtered read/write/search as tools
 
 ## How It Works
 

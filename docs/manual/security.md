@@ -1,6 +1,6 @@
 # Security
 
-[Previous](admin_guide) | [Next](configuration) | [Index](index)
+[Previous](admin_guide) | [Next](mcp_guide) | [Index](index)
 
 This guide documents security behavior currently implemented in Adapt.
 
@@ -28,6 +28,10 @@ API key behavior:
 - Keys are stored as SHA-256 hashes
 - Keys can be inactive or expired
 - `last_used_at` is updated on successful key usage
+
+The MCP interface (`/mcp`, see the [MCP Guide](mcp_guide)) only accepts
+`X-API-Key` — there is no session-cookie or anonymous path for MCP tool
+calls, since MCP has no concept of a browser session.
 
 ## Authorization
 
@@ -125,4 +129,4 @@ curl http://localhost:8000/health
 - Keep superuser accounts limited and monitored.
 - Review audit logs regularly.
 
-[Previous](admin_guide) | [Next](configuration) | [Index](index)
+[Previous](admin_guide) | [Next](mcp_guide) | [Index](index)

@@ -1,6 +1,6 @@
 # Configuration
 
-[Previous](security) | [Next](plugin_development) | [Index](index)
+[Previous](mcp_guide) | [Next](plugin_development) | [Index](index)
 
 This guide documents configuration behavior currently implemented in Adapt.
 
@@ -22,8 +22,10 @@ Current accepted keys are:
 - `tls_cert`
 - `tls_key`
 - `secure_cookies`
+- `search_on_startup`
 - `readonly`
 - `debug`
+- `mcp_enabled`
 - `logging`
 
 Unknown keys are treated as configuration errors.
@@ -43,6 +45,7 @@ Environment variables currently supported:
 - `ADAPT_PORT`
 - `ADAPT_READONLY`
 - `ADAPT_DEBUG`
+- `ADAPT_MCP_ENABLED`
 
 ## Example `conf.json`
 
@@ -52,9 +55,11 @@ Environment variables currently supported:
   "port": 8000,
   "readonly": false,
   "debug": false,
+  "mcp_enabled": true,
   "tls_cert": null,
   "tls_key": null,
   "secure_cookies": false,
+  "search_on_startup": true,
   "plugin_registry": {
     ".csv": "adapt.plugins.csv_plugin.CsvPlugin",
     ".xlsx": "adapt.plugins.excel_plugin.ExcelPlugin",
@@ -112,6 +117,13 @@ TLS note:
 
 - `--tls-cert` and `--tls-key` must be provided together.
 
+## MCP Interface
+
+`mcp_enabled` (default `true`) controls whether the MCP server is mounted at
+`/mcp`. Set it to `false` in `conf.json` or via `ADAPT_MCP_ENABLED=false` to
+remove the route entirely — useful for deployments that only want the REST
+API surface. See the [MCP Guide](mcp_guide) for setup.
+
 ## Plugin Registry Notes
 
 `plugin_registry` values must use dotted class paths, for example:
@@ -147,4 +159,4 @@ Typical checks:
 4. Invalid plugin class path
 5. TLS cert/key only partially set
 
-[Previous](security) | [Next](plugin_development) | [Index](index)
+[Previous](mcp_guide) | [Next](plugin_development) | [Index](index)
