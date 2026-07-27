@@ -8,11 +8,12 @@ API surface, no duplicated authorization logic.
 from __future__ import annotations
 
 import logging
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
 from fastapi import HTTPException, Request
 from mcp.server.fastmcp import Context, FastMCP
 from mcp.server.fastmcp.exceptions import ToolError
+from pydantic import Field
 from sqlmodel import Session
 
 from .auth.dependencies import check_permission, get_current_user
@@ -25,6 +26,19 @@ from .routes_search import DATASET_TYPES, _run_search
 from .storage import User
 
 logger = logging.getLogger(__name__)
+
+SortParam = Annotated[
+    str | None,
+    Field(description="Dataset column name to sort by, for example `category` or `price`."),
+]
+OrderParam = Annotated[
+    Literal["asc", "desc"],
+    Field(description="Sort direction for dataset reads. Use `sort` for the column name and `order` for `asc` or `desc`."),
+]
+FilterParam = Annotated[
+    dict[str, Any] | None,
+    Field(description="Optional dataset filter object, using the same shape as the REST API."),
+]
 
 
 async def _authenticated_user(ctx: Context) -> User:
@@ -102,11 +116,15 @@ def build_mcp_server(config: AdaptConfig) -> FastMCP:
         ctx: Context,
         limit: int | None = None,
         offset: int = 0,
-        sort: str | None = None,
-        order: str = "asc",
-        filter: dict | None = None,
+        sort: SortParam = None,
+        order: OrderParam = "asc",
+        filter: FilterParam = None,
     ) -> Any:
-        """Read a resource's content, permission-checked like the REST API."""
+        """Read a resource's content, permission-checked like the REST API.
+
+        For dataset resources, `sort` is the column name and `order` must be
+        `asc` or `desc`.
+        """
         request = ctx.request_context.request
         user = await _authenticated_user(ctx)
         entry = _authorized_entry(request, user, resource, "read")

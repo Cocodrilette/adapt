@@ -142,6 +142,18 @@ def test_list_tools_returns_the_five_tools(live_server):
         assert tool.inputSchema
 
 
+def test_read_resource_tool_schema_guides_sort_and_order_usage(live_server):
+    base_url, _ = live_server
+    tools = asyncio.run(_list_tools(base_url, headers={}))
+    read_resource = next(tool for tool in tools.tools if tool.name == "read_resource")
+    props = read_resource.inputSchema["properties"]
+
+    assert props["order"]["enum"] == ["asc", "desc"]
+    assert "column name" in props["sort"]["description"].lower()
+    assert "asc" in props["order"]["description"].lower()
+    assert "desc" in props["order"]["description"].lower()
+
+
 # ---------------------------------------------------------------------------
 # 2. Auth is required for every tool
 # ---------------------------------------------------------------------------

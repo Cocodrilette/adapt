@@ -161,6 +161,8 @@ anonymous path, since MCP has no concept of a browser session. Set
 `mcp_enabled: false` in `.adapt/conf.json` (or `ADAPT_MCP_ENABLED=false`) to
 remove `/mcp` entirely. Full walkthrough, troubleshooting, and the tool
 reference table: [docs/manual/mcp_guide.md](docs/manual/mcp_guide.md).
+For dataset reads, `sort` is the column name and `order` must be `asc` or
+`desc`.
 
 ## Dataset Mutation Envelope
 

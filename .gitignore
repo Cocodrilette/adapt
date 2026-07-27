@@ -5,7 +5,8 @@ cookies.txt
 examples/.adapt/
 .adapt/
 .adapt.db
-.cindex/
+.trailhead/
+.codex/
 
 # Github provided Python.gitignore template below
 ##############################################################################

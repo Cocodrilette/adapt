@@ -139,13 +139,23 @@ Use `https://` and a certificate the client trusts once you're off
 |---|---|---|
 | `list_resources` | `GET /` (JSON) | Every namespace the agent may read, with its type. |
 | `get_schema` | `GET /schema/{resource}` | Columns and types for a dataset resource. |
-| `read_resource` | `GET /api/{resource}` | Accepts `limit`, `offset`, `sort`, `order`, `filter` for datasets. |
+| `read_resource` | `GET /api/{resource}` | Accepts `limit`, `offset`, `sort`, `order`, `filter` for datasets. `sort` is the column name; `order` must be `asc` or `desc`. |
 | `write_resource` | `POST`/`PATCH`/`DELETE /api/{resource}` | `action` is `"create"`, `"update"`, or `"delete"`; see the [mutation envelope](../../README.md#dataset-mutation-envelope). |
 | `search` | `GET /search` | Full-text search across every resource the agent may read. |
 
 Once the client is connected, ask the agent something like "what data do you
 have access to?" — it should call `list_resources` on its own — or "search
 for parental leave policy" to exercise `search`.
+
+To read `products` sorted by category ascending, pass MCP tool arguments like:
+
+```json
+{
+  "resource": "products",
+  "sort": "category",
+  "order": "asc"
+}
+```
 
 ## Troubleshooting
 
