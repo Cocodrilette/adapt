@@ -8,12 +8,22 @@ import threading
 import logging
 from datetime import datetime, timedelta, timezone
 import pickle
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
 CACHE_TABLE = "cache"
-_lock = threading.Lock()
+_lock = threading.RLock()
 _db_path: str | None = None
+_CREATE_CACHE_TABLE_SQL = f"""
+    CREATE TABLE IF NOT EXISTS {CACHE_TABLE} (
+        key TEXT PRIMARY KEY,
+        value BLOB,
+        expires_at DATETIME,
+        resource TEXT,
+        user TEXT
+    )
+"""
 
 
 def _default_db_path() -> str:
@@ -35,24 +45,22 @@ def configure(db_path: str | None) -> None:
 def _get_conn():
     """Get a SQLite connection to the cache database."""
     path = _db_path or _default_db_path()
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(path, check_same_thread=False)
     conn.row_factory = sqlite3.Row
+    _ensure_cache_table(conn)
     return conn
+
+
+def _ensure_cache_table(conn: sqlite3.Connection) -> None:
+    """Ensure the cache table exists for the active database connection."""
+    conn.execute(_CREATE_CACHE_TABLE_SQL)
+    conn.commit()
 
 def init_cache_table():
     """Initialize the cache table in the SQLite database."""
     with _lock:
         conn = _get_conn()
-        conn.execute(f"""
-            CREATE TABLE IF NOT EXISTS {CACHE_TABLE} (
-                key TEXT PRIMARY KEY,
-                value BLOB,
-                expires_at DATETIME,
-                resource TEXT,
-                user TEXT
-            )
-        """)
-        conn.commit()
         conn.close()
     logger.debug("Cache table initialized")
 

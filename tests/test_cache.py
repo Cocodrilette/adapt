@@ -28,6 +28,13 @@ def test_get_cache_miss_returns_none():
     assert cache_module.get_cache("nonexistent", "res") is None
 
 
+def test_cache_lazy_initializes_after_db_path_change(tmp_path):
+    cache_module._db_path = str(tmp_path / "nested" / "lazy-cache.db")
+    assert cache_module.get_cache("missing", "res") is None
+    cache_module.set_cache("lazy", {"ok": True}, ttl_seconds=60, resource="res")
+    assert cache_module.get_cache("lazy", "res") == {"ok": True}
+
+
 def test_get_cache_expired_returns_none():
     cache_module.set_cache("k_exp", "val", ttl_seconds=0, resource="res")
     # TTL of 0 means expires_at == now; give a tiny sleep to ensure it's past
