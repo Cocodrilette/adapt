@@ -37,6 +37,7 @@ class AdaptConfig:
     tls_key: Path | None = None
     secure_cookies: bool = False  # Whether to set secure flag on cookies
     search_on_startup: bool = True  # Whether to refresh the search index on startup
+    mcp_enabled: bool = True  # Whether to mount the MCP server at /mcp
     plugin_registry: dict[str, str] = field(default_factory=lambda: {
         ".csv": "adapt.plugins.csv_plugin.CsvPlugin",
         ".xlsx": "adapt.plugins.excel_plugin.ExcelPlugin",
@@ -143,6 +144,7 @@ class AdaptConfig:
             "search_on_startup": self.search_on_startup,
             "readonly": self.readonly,
             "debug": self.debug,
+            "mcp_enabled": self.mcp_enabled,
             "logging": self.logging.copy(),
         }
         with conf_path.open("w") as f:
@@ -162,6 +164,7 @@ class AdaptConfig:
         allowed_keys = {
             "plugin_registry", "host", "port", "tls_cert", "tls_key",
             "secure_cookies", "search_on_startup", "readonly", "debug", "logging",
+            "mcp_enabled",
         }
         for key in data:
             if key not in allowed_keys:
@@ -194,7 +197,7 @@ class AdaptConfig:
             if not isinstance(data["tls_key"], str):
                 logger.error("tls_key must be str or null")
                 sys.exit(1)
-        for bool_key in ("secure_cookies", "search_on_startup", "readonly", "debug"):
+        for bool_key in ("secure_cookies", "search_on_startup", "readonly", "debug", "mcp_enabled"):
             if bool_key in data and not isinstance(data[bool_key], bool):
                 logger.error("%s must be bool", bool_key)
                 sys.exit(1)
@@ -222,6 +225,8 @@ class AdaptConfig:
             self.readonly = data["readonly"]
         if "debug" in data:
             self.debug = data["debug"]
+        if "mcp_enabled" in data:
+            self.mcp_enabled = data["mcp_enabled"]
         if "logging" in data:
             self.logging.update(data["logging"])
 
@@ -243,3 +248,5 @@ class AdaptConfig:
             self.readonly = self._parse_env_bool(os.environ["ADAPT_READONLY"], "ADAPT_READONLY")
         if "ADAPT_DEBUG" in os.environ:
             self.debug = self._parse_env_bool(os.environ["ADAPT_DEBUG"], "ADAPT_DEBUG")
+        if "ADAPT_MCP_ENABLED" in os.environ:
+            self.mcp_enabled = self._parse_env_bool(os.environ["ADAPT_MCP_ENABLED"], "ADAPT_MCP_ENABLED")

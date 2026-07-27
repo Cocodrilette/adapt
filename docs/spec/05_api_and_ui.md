@@ -178,3 +178,69 @@ All errors use a formatted JSON structure:
   "location": "row 4, column price"
 }
 ```
+
+---
+
+## **6. MCP Interface**
+
+### **Purpose**
+
+Expose the same permission-filtered discovery, read, write, and search
+functionality the REST API and browser UI already provide, through the Model
+Context Protocol so agentic tool-callers can talk to Adapt natively — without
+standing up a second, parallel API surface.
+
+### **Transport**
+
+A [`FastMCP`](https://pypi.org/project/mcp/) streamable-HTTP server is mounted
+at `/mcp` on the same FastAPI app `adapt serve` runs — one process, one port,
+the same TLS/host configuration as the rest of Adapt. There is no separate
+`stdio` transport or CLI subcommand.
+
+### **Tools**
+
+| Tool | Equivalent to | Description |
+|---|---|---|
+| `list_resources` | `GET /` (JSON) | Every resource namespace the caller may read, with its type. |
+| `get_schema` | `GET /schema/<ns>` | Columns and types for a dataset resource. |
+| `read_resource` | `GET /api/<ns>` | Read a resource's content, with `limit`/`offset`/`sort`/`order`/`filter` for datasets. |
+| `write_resource` | `POST`/`PATCH`/`DELETE /api/<ns>` | Create, update, or delete rows in a writable (dataset) resource. |
+| `search` | `GET /search` | Full-text search across every resource the caller may read. |
+
+`read_resource` / `write_resource` call the same `Plugin.read()` /
+`Plugin.write()` methods the REST routes call — every plugin's existing
+behavior transfers with no duplication. Non-dataset plugins (`markdown`,
+`html`, `media`, `python`) raise `NotImplementedError` from `write()`, which
+tools report back as an error naming the resource type.
+
+Media resources appear in `list_resources` / `search` results with their
+existing `/media/<path>` and `/ui/<path>` URLs, but streaming the raw bytes
+through a tool call is out of scope — that's left to an HTTP client, the same
+way `FileResponse` and range requests already work for the REST API.
+
+### **Authentication & Authorization**
+
+Tools reuse `adapt.auth.dependencies.get_current_user()`,
+`check_permission()`, and `PermissionChecker.readable_resources()` — the
+identical mechanism and permission semantics the REST API and `/openapi.json`
+use. MCP clients authenticate with the `X-API-Key` header; there is no
+session-cookie or anonymous path, since MCP has no concept of an anonymous
+session the way an HTML page does. A superuser bypasses permission checks
+exactly as elsewhere.
+
+Admin operations (users/groups/permissions/locks/cache/audit) are **not**
+exposed as MCP tools. MCP is an agent-facing *document* interface; admin
+stays REST-only, superuser-gated through the browser/API-key admin UI.
+
+### **Read-only mode**
+
+`write_resource` checks `AdaptConfig.readonly` before touching a plugin and
+returns the same "Server is in read-only mode" message REST callers get for
+a 405.
+
+### **Configuration**
+
+The `mcp_enabled` key in `.adapt/conf.json` (default `true`) controls whether
+`/mcp` is mounted; it can also be set via the `ADAPT_MCP_ENABLED` environment
+variable. Disabling it removes the route entirely rather than returning an
+error for every call.

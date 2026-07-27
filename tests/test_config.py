@@ -26,6 +26,7 @@ class TestAdaptConfig:
             "search_on_startup": True,
             "readonly": False,
             "debug": False,
+            "mcp_enabled": True,
             "logging": config.logging.copy(),
         }
         assert data == expected

@@ -24,10 +24,11 @@ from .admin import router as admin_router
 from .config import AdaptConfig
 from .discovery import discover_resources
 from .permissions import PermissionChecker
-from .routes import generate_routes
+from .routes import build_resource_registry, generate_routes, resource_namespaces as _routes_resource_namespaces
 from .routes_search import router as search_router, safe_snippet
 from .storage import User, DBSession, init_database
 from .locks import LockManager
+from .mcp import build_mcp_server
 from .utils import build_accessible_ui_links
 from . import cache, search
 from .security import (
@@ -72,13 +73,7 @@ def _normalize_path(path: str) -> str:
 
 def _resource_namespaces(resource) -> set[str]:
     """Return the supported permission namespaces for a discovered resource."""
-    namespace_no_ext = resource.relative_path.with_suffix("").as_posix()
-    namespace_with_ext = resource.relative_path.as_posix()
-    if "sub_namespace" in resource.metadata:
-        suffix = f"/{resource.metadata['sub_namespace']}"
-        namespace_no_ext += suffix
-        namespace_with_ext += suffix
-    return {namespace_no_ext, namespace_with_ext}
+    return set(_routes_resource_namespaces(resource))
 
 
 def _all_resource_namespaces(resources) -> set[str]:
@@ -241,14 +236,25 @@ def _visible_resource_paths(request: Request, user: User | None) -> list[str]:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Handle application startup and shutdown events."""
+    """Handle application startup and shutdown events.
+
+    A mounted MCP sub-app's own `lifespan` is never invoked by the ASGI
+    server: Starlette's `Mount` only forwards `http`/`websocket` scope types,
+    never `lifespan`. So the MCP session manager's `run()` context must be
+    entered here, alongside the rest of this app's own startup/shutdown.
+    """
     # Startup: Start background cleanup task
     engine = app.state.db_engine
     cleanup_task = asyncio.create_task(cleanup_expired_sessions(engine))
     logger.debug("Application startup: background cleanup task started")
-    
-    yield
-    
+
+    mcp_server = getattr(app.state, "mcp_server", None)
+    if mcp_server is not None:
+        async with mcp_server.session_manager.run():
+            yield
+    else:
+        yield
+
     # Shutdown: Could add cleanup logic here if needed
     cleanup_task.cancel()
     try:
@@ -299,6 +305,7 @@ def create_app(config: AdaptConfig) -> FastAPI:
     app.state.use_tls = bool(config.tls_cert and config.tls_key)
     app.state.lock_manager = lock_manager
     app.state.resources = resources
+    app.state.resource_registry = build_resource_registry(resources, config)
 
     allowed_hosts = build_allowed_hosts(config.host)
     if allowed_hosts != ["*"]:
@@ -370,7 +377,28 @@ def create_app(config: AdaptConfig) -> FastAPI:
     app.include_router(search_router)
 
     # Generate and mount routes
-    generate_routes(app, resources, config)
+    generate_routes(app, app.state.resource_registry)
+
+    # Mount the MCP server, exposing resources as agent-facing tools
+    if config.mcp_enabled:
+        mcp_server = build_mcp_server(config)
+        mcp_app = mcp_server.streamable_http_app()
+        # A mounted sub-app's `request.app` is itself, not the main app (see
+        # lifespan() docstring for the related lifespan gotcha) — mirror the
+        # slice of state every tool/helper needs onto it.
+        mcp_app.state.db_engine = engine
+        mcp_app.state.resources = resources
+        mcp_app.state.config = config
+        mcp_app.state.lock_manager = lock_manager
+        mcp_app.state.resource_registry = app.state.resource_registry
+        # The outer app's own middleware still runs for /mcp requests (it wraps
+        # routing, including the Mount), and by the time it inspects
+        # `request.app.state` post-routing, `scope["app"]` has already been
+        # overwritten to `mcp_app` — so anything that middleware reads off
+        # app.state must be mirrored here too, not just what the tools need.
+        mcp_app.state.use_tls = app.state.use_tls
+        app.state.mcp_server = mcp_server
+        app.mount("/mcp", mcp_app)
 
     @app.get("/openapi.json", include_in_schema=False)
     def openapi_schema(request: Request):
