@@ -7,7 +7,7 @@ import logging.config
 from pathlib import Path
 
 from .config import AdaptConfig
-from .commands import check, addsuperuser, list_endpoints, serve
+from .commands import check, addsuperuser, list_endpoints, reindex, serve
 from .commands.admin import run_admin
 
 logger = logging.getLogger(__name__)
@@ -39,6 +39,10 @@ def main() -> None:
 
     list_parser = subparsers.add_parser("list-endpoints", help="List the auto-generated REST/UI endpoints")
     list_parser.add_argument("root", nargs="?", default=".", help="Document root to inspect")
+
+    reindex_parser = subparsers.add_parser("reindex", help="Rebuild the full-text search index")
+    reindex_parser.add_argument("root", nargs="?", default=".", help="Document root to index")
+    reindex_parser.add_argument("--force", action="store_true", help="Reindex even unchanged files")
 
     admin_parser = subparsers.add_parser("admin", help="Admin tasks")
     admin_subparsers = admin_parser.add_subparsers(dest="admin_command", required=True)
@@ -116,6 +120,9 @@ def main() -> None:
     elif args.command == "list-endpoints":
         logger.info("Running list-endpoints command with root=%s", args.root)
         list_endpoints.run_list_endpoints(Path(args.root).resolve())
+    elif args.command == "reindex":
+        logger.info("Running reindex command with root=%s force=%s", args.root, args.force)
+        reindex.run_reindex(Path(args.root).resolve(), force=args.force)
     elif args.command == "admin":
         logger.info("Running admin command: %s", args.admin_command)
         run_admin(args)

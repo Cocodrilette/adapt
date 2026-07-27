@@ -38,6 +38,32 @@ class PermissionChecker:
         perms = self.db.exec(stmt).all()
         return perms
 
+    def readable_resources(self, user: User) -> set[str] | None:
+        """Get every resource namespace a user may read, in a single query.
+
+        Prefer this over calling `has_permission` once per resource when
+        filtering a list; that pattern issues one query per resource.
+
+        Args:
+            user: The user to check.
+
+        Returns:
+            The set of readable namespaces, or None if the user is a superuser
+            and therefore unrestricted. None rather than an all-inclusive set so
+            that a caller which forgets to handle it raises instead of silently
+            granting or denying access.
+        """
+        if getattr(user, "is_superuser", False):
+            logger.debug("User %s is a superuser: unrestricted read access", user.username)
+            return None
+        namespaces = {
+            perm.resource
+            for perm in self.get_user_permissions(user)
+            if perm.action.value == "read"
+        }
+        logger.debug("User %s may read %d namespaces", user.username, len(namespaces))
+        return namespaces
+
     def has_permission(self, user: User, resource: str, action: str) -> bool:
         """Check if a user has permission for a specific resource and action.
 

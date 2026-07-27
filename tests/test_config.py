@@ -23,6 +23,7 @@ class TestAdaptConfig:
             "tls_cert": None,
             "tls_key": None,
             "secure_cookies": False,
+            "search_on_startup": True,
             "readonly": False,
             "debug": False,
             "logging": config.logging.copy(),

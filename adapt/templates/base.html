@@ -51,6 +51,16 @@
                     </li>
                     {% endif %}
                 </ul>
+                {% if user %}
+                <form class="d-flex me-2" method="get" action="/search" role="search">
+                    <div class="input-group input-group-sm">
+                        <input class="form-control" type="search" name="q"
+                               value="{{ query if query else '' }}"
+                               placeholder="Search…" aria-label="Search all resources">
+                        <button class="btn btn-outline-light" type="submit">Go</button>
+                    </div>
+                </form>
+                {% endif %}
             </div>
             {% if user %}
             <form class="d-flex" method="post" action="/auth/logout">

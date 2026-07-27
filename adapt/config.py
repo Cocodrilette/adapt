@@ -36,6 +36,7 @@ class AdaptConfig:
     tls_cert: Path | None = None
     tls_key: Path | None = None
     secure_cookies: bool = False  # Whether to set secure flag on cookies
+    search_on_startup: bool = True  # Whether to refresh the search index on startup
     plugin_registry: dict[str, str] = field(default_factory=lambda: {
         ".csv": "adapt.plugins.csv_plugin.CsvPlugin",
         ".xlsx": "adapt.plugins.excel_plugin.ExcelPlugin",
@@ -139,6 +140,7 @@ class AdaptConfig:
             "tls_cert": str(self.tls_cert) if self.tls_cert else None,
             "tls_key": str(self.tls_key) if self.tls_key else None,
             "secure_cookies": self.secure_cookies,
+            "search_on_startup": self.search_on_startup,
             "readonly": self.readonly,
             "debug": self.debug,
             "logging": self.logging.copy(),
@@ -159,7 +161,7 @@ class AdaptConfig:
         """Validate all keys and types in the loaded config dict, exiting on error."""
         allowed_keys = {
             "plugin_registry", "host", "port", "tls_cert", "tls_key",
-            "secure_cookies", "readonly", "debug", "logging",
+            "secure_cookies", "search_on_startup", "readonly", "debug", "logging",
         }
         for key in data:
             if key not in allowed_keys:
@@ -192,7 +194,7 @@ class AdaptConfig:
             if not isinstance(data["tls_key"], str):
                 logger.error("tls_key must be str or null")
                 sys.exit(1)
-        for bool_key in ("secure_cookies", "readonly", "debug"):
+        for bool_key in ("secure_cookies", "search_on_startup", "readonly", "debug"):
             if bool_key in data and not isinstance(data[bool_key], bool):
                 logger.error("%s must be bool", bool_key)
                 sys.exit(1)
@@ -214,6 +216,8 @@ class AdaptConfig:
             self.tls_key = Path(data["tls_key"])
         if "secure_cookies" in data:
             self.secure_cookies = data["secure_cookies"]
+        if "search_on_startup" in data:
+            self.search_on_startup = data["search_on_startup"]
         if "readonly" in data:
             self.readonly = data["readonly"]
         if "debug" in data:

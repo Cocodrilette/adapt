@@ -26,10 +26,11 @@ from .config import AdaptConfig
 from .discovery import discover_resources
 from .permissions import PermissionChecker
 from .routes import generate_routes
+from .routes_search import router as search_router, safe_snippet
 from .storage import User, DBSession, init_database
 from .locks import LockManager
 from .utils import build_accessible_ui_links
-from . import cache
+from . import cache, search
 from .security import (
     apply_security_headers,
     build_allowed_hosts,
@@ -45,7 +46,7 @@ logger = logging.getLogger(__name__)
 
 _DOCS_INTERNAL_PATHS = frozenset({"/docs", "/docs/", "/docs/oauth2-redirect", "/openapi.json"})
 _PUBLIC_OPENAPI_PATHS = frozenset({"/", "/auth/login", "/health"})
-_AUTHENTICATED_OPENAPI_PATHS = frozenset({"/auth/logout", "/auth/me", "/profile", "/api/apikeys"})
+_AUTHENTICATED_OPENAPI_PATHS = frozenset({"/auth/logout", "/auth/me", "/profile", "/api/apikeys", "/search"})
 
 
 async def cleanup_expired_sessions(engine, interval_hours=24):
@@ -219,12 +220,16 @@ def _init_infrastructure(config: AdaptConfig):
     """
     engine = init_database(config.db_path)
     cache.configure(str(config.db_path))
+    search.configure(str(config.db_path))
     lock_manager = LockManager(engine)
     cleaned = lock_manager.release_stale_locks(max_age_seconds=300)
     if cleaned > 0:
         logging.warning("Cleaned %d stale locks on startup", cleaned)
     resources = discover_resources(config.root, config)
     logger.debug("Discovered %d resources", len(resources))
+    if config.search_on_startup:
+        # Incremental: unchanged files are skipped, so restarts stay cheap.
+        search.reindex_all(resources, config)
     return engine, lock_manager, resources
 
 
@@ -254,6 +259,9 @@ def create_app(config: AdaptConfig) -> FastAPI:
     # Set up Jinja2 templates
     templates_dir = Path(__file__).parent / "templates"
     templates = Jinja2Templates(directory=str(templates_dir))
+    # Search snippets hold raw docroot text; this escapes them and restores only
+    # the <mark> highlights. See routes_search.safe_snippet.
+    templates.env.filters["safe_snippet"] = safe_snippet
     app.state.templates = templates
 
     # Mount static files
@@ -309,6 +317,9 @@ def create_app(config: AdaptConfig) -> FastAPI:
 
     # Mount admin routes
     app.include_router(admin_router)
+
+    # Mount search routes
+    app.include_router(search_router)
 
     # Generate and mount routes
     generate_routes(app, resources, config)

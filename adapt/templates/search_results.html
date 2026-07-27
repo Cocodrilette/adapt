@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}Search{% if query %} — {{ query }}{% endif %}{% endblock %}
+
+{% block content %}
+<h1 class="h3 mb-3">Search</h1>
+
+<form class="mb-4" method="get" action="/search" role="search">
+    <div class="input-group">
+        <input class="form-control" type="search" name="q" value="{{ query }}"
+               placeholder="Search all resources…" aria-label="Search all resources" autofocus>
+        <button class="btn btn-primary" type="submit">Search</button>
+    </div>
+</form>
+
+{% if not query %}
+    <p class="text-muted">Enter a term to search across every resource you can access.</p>
+{% elif not results %}
+    <p class="text-muted">No results for <strong>{{ query }}</strong>.</p>
+{% else %}
+    <p class="text-muted">
+        Showing {{ count }} result{{ '' if count == 1 else 's' }}
+        {%- if offset %} starting at {{ offset + 1 }}{% endif %}
+        {%- if has_more %} (more available){% endif %}.
+    </p>
+
+    <div class="list-group mb-3">
+        {% for result in results %}
+        <div class="list-group-item">
+            <div class="d-flex justify-content-between align-items-start">
+                <a class="fw-semibold text-decoration-none" href="{{ result.ui_url }}">{{ result.title }}</a>
+                <span class="badge bg-secondary ms-2">{{ result.type }}</span>
+            </div>
+            <div class="small text-body-secondary mt-1">{{ result.snippet | safe_snippet }}</div>
+            <div class="small text-muted mt-1">
+                {{ result.resource }}
+                {%- if result.row_id %} · row {{ result.row_id }}{% endif %}
+                {%- if result.api_url %} · <a href="{{ result.api_url }}">API</a>{% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <nav aria-label="Search results pages">
+        <ul class="pagination">
+            <li class="page-item {{ 'disabled' if offset == 0 }}">
+                <a class="page-link"
+                   href="/search?q={{ query | urlencode }}&limit={{ limit }}&offset={{ [offset - limit, 0] | max }}">Previous</a>
+            </li>
+            <li class="page-item {{ '' if has_more else 'disabled' }}">
+                <a class="page-link"
+                   href="/search?q={{ query | urlencode }}&limit={{ limit }}&offset={{ offset + limit }}">Next</a>
+            </li>
+        </ul>
+    </nav>
+{% endif %}
+{% endblock %}

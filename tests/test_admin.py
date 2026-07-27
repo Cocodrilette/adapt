@@ -39,6 +39,24 @@ def test_admin_ui_redirect(client):
     assert response.status_code == 302
     assert "/auth/login" in response.headers["location"]
 
+def test_admin_ui_renders_for_superuser(client):
+    """The admin UI must actually render once logged in.
+
+    Regression: ui.py called TemplateResponse(name, context) — the removed
+    Starlette signature — which passed the context dict where the template name
+    belongs and raised a TypeError. Only the unauthenticated redirect was
+    covered, and TestClient follows that redirect to the login page, so the
+    render path was never exercised.
+    """
+    response = client.post("/auth/login", data={"username": "admin", "password": "admin"})
+    assert response.status_code == 200
+
+    response = client.get("/admin/", follow_redirects=False)
+    assert response.status_code == 200
+    assert "text/html" in response.headers["content-type"]
+    assert "<h1>Adapt</h1>" in response.text
+
+
 def test_admin_flow(client):
     # 1. Access denied (API)
     response = client.get("/admin/users")

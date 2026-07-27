@@ -55,6 +55,7 @@ class MarkdownPlugin(Plugin):
             context = {
                 "content": html_content,
                 "title": descriptor.path.stem,
+                "user": user,
                 "is_superuser": is_superuser,
                 "ui_links": ui_links
             }

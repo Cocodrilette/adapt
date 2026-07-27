@@ -30,4 +30,4 @@ def admin_ui(request: Request):
 
     # Serve the admin template
     logger.debug("Rendering admin UI for superuser %s", user.username)
-    return request.app.state.templates.TemplateResponse("admin/index.html", context)
+    return request.app.state.templates.TemplateResponse(request, "admin/index.html", context)
