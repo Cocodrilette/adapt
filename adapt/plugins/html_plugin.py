@@ -62,7 +62,7 @@ class HtmlPlugin(Plugin):
         Returns:
             True if the file has .html extension, False otherwise.
         """
-        return path.suffix.lower() in {".html", ".txt"}
+        return path.suffix.lower() == ".html"
 
     def load(self, path: Path) -> ResourceDescriptor:
         """Load the HTML file as a resource descriptor.
@@ -127,21 +127,12 @@ class HtmlPlugin(Plugin):
         raise NotImplementedError("HTML files do not support write operations")
 
     def index(self, resource: ResourceDescriptor) -> Sequence[SearchDocument]:
-        """Yield a single document of visible text for an HTML or text file.
-
-        Markup, scripts and styles are stripped so the index holds readable
-        text; `.txt` files are indexed verbatim.
-        """
+        """Yield a single document of visible text for an HTML file."""
         content = resource.path.read_text(encoding="utf-8", errors="replace")
-
-        if resource.path.suffix.lower() == ".txt":
-            body = content.strip()
-            title = resource.path.stem
-        else:
-            extractor = _TextExtractor()
-            extractor.feed(content)
-            body = " ".join(extractor.chunks).strip()
-            title = extractor.title or resource.path.stem
+        extractor = _TextExtractor()
+        extractor.feed(content)
+        body = " ".join(extractor.chunks).strip()
+        title = extractor.title or resource.path.stem
 
         if not body:
             return []

@@ -28,6 +28,26 @@ def test_run_list_endpoints_discovers_media_without_cache_table_error(tmp_path, 
     assert "/api/data" in output
 
 
+def test_run_list_endpoints_lists_file_resources_as_top_level(tmp_path, capsys):
+    (tmp_path / "notes.txt").write_text("hello")
+
+    run_list_endpoints(tmp_path)
+
+    output = capsys.readouterr().out
+    assert "/notes" in output
+    assert "/api/notes" not in output
+    assert "/ui/notes" not in output
+
+
+def test_run_check_warns_on_reserved_namespace_for_file_resources(tmp_path, capsys):
+    (tmp_path / "health.txt").write_text("ok")
+
+    run_check(tmp_path)
+
+    output = capsys.readouterr().out
+    assert "shadows the built-in /health route" in output
+
+
 def test_run_create_permissions_all_with_media_does_not_crash(tmp_path, capsys):
     _seed_workspace(tmp_path)
 

@@ -34,7 +34,7 @@ def run_list_endpoints(root: Path) -> None:
     logger.debug("Listing endpoints for %d resources", len(resources))
     for resource in resources:
         namespace = resource.relative_path.with_suffix("").as_posix()
-        if resource.resource_type not in ("html", "markdown"):
+        if resource.resource_type not in ("html", "markdown", "file"):
             print(f"/api/{namespace}")
             print(f"/ui/{namespace}")
             print(f"/schema/{namespace}")

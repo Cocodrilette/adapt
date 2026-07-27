@@ -99,6 +99,15 @@ def test_build_match_query_returns_none_for_tokenless_input(indexed_root, raw):
     assert search.build_match_query(raw) is None
 
 
+@pytest.mark.parametrize("resource_type", ["html", "markdown", "file"])
+def test_resource_url_is_top_level_for_directly_served_types(resource_type):
+    assert search.resource_url(resource_type, "notes") == "/notes"
+
+
+def test_resource_url_falls_back_to_ui_for_dataset_types():
+    assert search.resource_url("csv", "data") == "/ui/data"
+
+
 def test_build_match_query_caps_token_count(indexed_root):
     expr = search.build_match_query(" ".join(str(n) for n in range(50)))
     assert expr.count('"') // 2 == search.MAX_QUERY_TOKENS

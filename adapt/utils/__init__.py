@@ -19,7 +19,7 @@ def build_ui_links(request: Request) -> list[dict[str, str]]:
         namespace = res.relative_path.with_suffix("").as_posix()
         if "sub_namespace" in res.metadata:
             namespace += f"/{res.metadata['sub_namespace']}"
-        if res.resource_type in ("html", "markdown"):
+        if res.resource_type in ("html", "markdown", "file"):
             url = f"/{namespace}"
         else:
             url = f"/ui/{namespace}"
@@ -36,7 +36,7 @@ def build_ui_links(request: Request) -> list[dict[str, str]]:
 def build_accessible_ui_links(request: Request, user: User | None) -> list[dict[str, str]]:
     """Build UI links for resources accessible to the user.
     
-    Filters based on permissions for datasets, includes all html/markdown.
+    Filters based on permissions for datasets, includes direct-view content files.
     Superusers have access to all resources.
     """
     from ..permissions import PermissionChecker
@@ -51,7 +51,7 @@ def build_accessible_ui_links(request: Request, user: User | None) -> list[dict[
             namespace = res.relative_path.with_suffix("").as_posix()
             if "sub_namespace" in res.metadata:
                 namespace += f"/{res.metadata['sub_namespace']}"
-            if res.resource_type in ("html", "markdown"):
+            if res.resource_type in ("html", "markdown", "file"):
                 url = f"/{namespace}"
             else:
                 url = f"/ui/{namespace}"
@@ -65,7 +65,7 @@ def build_accessible_ui_links(request: Request, user: User | None) -> list[dict[
                     namespace += f"/{res.metadata['sub_namespace']}"
                 if not checker.has_permission(user, namespace, "read"):
                     continue
-                if res.resource_type in ("html", "markdown"):
+                if res.resource_type in ("html", "markdown", "file"):
                     url = f"/{namespace}"
                 else:
                     url = f"/ui/{namespace}"

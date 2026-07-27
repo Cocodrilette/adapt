@@ -160,7 +160,7 @@ def namespace_for(resource: "DatasetResource | ResourceDescriptor", root: Path |
 
 def resource_url(resource_type: str, namespace: str) -> str:
     """Return the browsable URL for a resource, matching build_ui_links."""
-    if resource_type in ("html", "markdown"):
+    if resource_type in ("html", "markdown", "file"):
         return f"/{namespace}"
     return f"/ui/{namespace}"
 

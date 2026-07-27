@@ -3,6 +3,7 @@ from pathlib import Path
 
 import pytest
 
+from adapt import cache
 from adapt.plugins.html_plugin import HtmlPlugin
 from adapt.plugins.base import ResourceDescriptor
 
@@ -21,10 +22,15 @@ def sample_html():
     path.unlink()
 
 
+@pytest.fixture(autouse=True)
+def configured_cache(tmp_path):
+    cache.configure(str(tmp_path / "adapt.db"))
+
+
 def test_html_plugin_detect(sample_html):
     plugin = HtmlPlugin()
     assert plugin.detect(sample_html)
-    assert plugin.detect(Path("test.txt"))
+    assert not plugin.detect(Path("test.txt"))
     assert not plugin.detect(Path("test.md"))
 
 

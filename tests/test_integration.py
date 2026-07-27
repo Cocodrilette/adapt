@@ -111,6 +111,57 @@ def test_ui_load(superuser_client):
     assert "name" in response.text 
 
 
+def test_text_file_serves_plain_text(tmp_path):
+    text_file = tmp_path / "notes.txt"
+    text_file.write_text("alpha\nbeta\n", encoding="utf-8")
+    (tmp_path / "data.csv").write_text("name,age\nAlice,30\nBob,25")
+
+    app = create_app(AdaptConfig(root=tmp_path))
+    with Session(app.state.db_engine) as db:
+        admin = User(username="admin_text", password_hash=hash_password("admin"), is_superuser=True)
+        db.add(admin)
+        db.commit()
+        db.refresh(admin)
+        token = create_session(db, admin.id)
+
+    client = TestClient(app)
+    client.cookies.set(SESSION_COOKIE, token)
+    client.cookies.set(CSRF_COOKIE_NAME, generate_csrf_token())
+
+    response = client.get("/notes")
+    assert response.status_code == 200
+    assert response.text.splitlines() == ["alpha", "beta"]
+    assert response.headers["content-type"].startswith("text/plain")
+    assert response.headers["content-disposition"].startswith("inline;")
+
+
+def test_pdf_file_serves_inline_or_download(tmp_path):
+    pdf_file = tmp_path / "paper.pdf"
+    pdf_file.write_bytes(b"%PDF-1.4\n%test\n")
+    (tmp_path / "data.csv").write_text("name,age\nAlice,30\nBob,25")
+
+    app = create_app(AdaptConfig(root=tmp_path))
+    with Session(app.state.db_engine) as db:
+        admin = User(username="admin_pdf", password_hash=hash_password("admin"), is_superuser=True)
+        db.add(admin)
+        db.commit()
+        db.refresh(admin)
+        token = create_session(db, admin.id)
+
+    client = TestClient(app)
+    client.cookies.set(SESSION_COOKIE, token)
+    client.cookies.set(CSRF_COOKIE_NAME, generate_csrf_token())
+
+    inline_response = client.get("/paper")
+    assert inline_response.status_code == 200
+    assert inline_response.headers["content-type"].startswith("application/pdf")
+    assert inline_response.headers["content-disposition"].startswith("inline;")
+
+    download_response = client.get("/paper?download=true")
+    assert download_response.status_code == 200
+    assert download_response.headers["content-disposition"].startswith("attachment;")
+
+
 def test_ui_hides_write_controls_for_read_only_user(tmp_path):
     """UI should hide add/edit/delete controls when user has read but not write permission."""
     (tmp_path / "data.csv").write_text("name,age\nAlice,30\nBob,25")
@@ -319,6 +370,7 @@ def test_build_accessible_ui_links(app):
     resources = [
         MockResource("data.csv", "csv"),
         MockResource("doc.md", "markdown"),
+        MockResource("notes.txt", "file"),
         MockResource("book.xlsx", "excel", "Sheet1"),
     ]
     
@@ -335,7 +387,9 @@ def test_build_accessible_ui_links(app):
         db.commit()
         
         perm = Permission(resource="data", action="read")
+        file_perm = Permission(resource="notes", action="read")
         db.add(perm)
+        db.add(file_perm)
         db.commit()
         
         group = Group(name="testgroup")
@@ -345,7 +399,9 @@ def test_build_accessible_ui_links(app):
         ug = UserGroup(user_id=user.id, group_id=group.id)
         db.add(ug)
         gp = GroupPermission(group_id=group.id, permission_id=perm.id)
+        gp_file = GroupPermission(group_id=group.id, permission_id=file_perm.id)
         db.add(gp)
+        db.add(gp_file)
         db.commit()
 
         from adapt.permissions import PermissionChecker
@@ -353,10 +409,13 @@ def test_build_accessible_ui_links(app):
         assert checker.has_permission(user, "data", "read") == True
 
         links = build_accessible_ui_links(request, user)
-        assert len(links) == 1  # only the explicitly permitted csv
+        assert len(links) == 2
         names = [l["name"] for l in links]
         assert "data" in names
+        assert "notes" in names
         assert "doc" not in names  # no explicit permission for the markdown resource
+        file_link = next(link for link in links if link["name"] == "notes")
+        assert file_link["url"] == "/notes"
 
 
 def test_readonly_mode_read_operations(readonly_superuser_client):

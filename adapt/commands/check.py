@@ -38,10 +38,10 @@ def run_check(root: Path) -> None:
     print(f"SQLite store: {config.db_path} (engine {engine})")
     print(f"Discovered {count} dataset(s)")
 
-    # Markdown and HTML resources mount at /<namespace>, so they can collide
-    # with built-in routes; datasets live under /api and /ui and cannot.
+    # Markdown, HTML, and file resources mount at /<namespace>, so they can
+    # collide with built-in routes; datasets live under /api and /ui and cannot.
     for resource in resources:
-        if resource.resource_type not in ("markdown", "html"):
+        if resource.resource_type not in ("markdown", "html", "file"):
             continue
         namespace = resource.relative_path.with_suffix("").as_posix()
         if namespace in RESERVED_NAMESPACES:

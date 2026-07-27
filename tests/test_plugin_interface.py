@@ -3,6 +3,7 @@ from pathlib import Path
 from adapt.plugins.base import Plugin, ResourceDescriptor
 from adapt.plugins.csv_plugin import CsvPlugin
 from adapt.plugins.excel_plugin import ExcelPlugin
+from adapt.plugins.file_plugin import FilePlugin
 from adapt.plugins.html_plugin import HtmlPlugin
 from adapt.plugins.markdown_plugin import MarkdownPlugin
 from adapt.plugins.media_plugin import MediaPlugin
@@ -12,6 +13,7 @@ from adapt.plugins.python_plugin import PythonHandlerPlugin
 PLUGIN_CLASSES = [
     CsvPlugin,
     ExcelPlugin,
+    FilePlugin,
     HtmlPlugin,
     MarkdownPlugin,
     MediaPlugin,
