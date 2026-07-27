@@ -5,7 +5,7 @@ from typing import Any, Sequence, Iterable, Optional
 import pandas as pd
 import fastparquet
 from .dataset_plugin import DatasetPlugin
-from .base import ResourceDescriptor
+from .base import ResourceDescriptor, atomic_write
 
 
 logger = logging.getLogger(__name__)
@@ -28,14 +28,12 @@ class ParquetPlugin(DatasetPlugin):
         """
         logger.info(f"Writing rows to Parquet file: {resource.path}")
         # For test compatibility: write rows to Parquet file
-        import pandas as pd
-        import os
-        import tempfile
         df = pd.DataFrame(rows, columns=columns)
-        with tempfile.NamedTemporaryFile(suffix='.parquet', delete=False) as tmp_fh:
-            tmp_path = tmp_fh.name
-        df.to_parquet(tmp_path, engine="fastparquet")
-        os.replace(tmp_path, resource.path)
+
+        def write_tmp(tmp_path: Path) -> None:
+            df.to_parquet(tmp_path, engine="fastparquet")
+
+        atomic_write(resource.path, ".parquet", write_tmp)
 
     def _read_raw_rows(self, resource: ResourceDescriptor) -> list[list[Any]]:
         """Read raw rows from the Parquet file.
@@ -145,12 +143,11 @@ class ParquetPlugin(DatasetPlugin):
             header: The column headers.
         """
         logger.info(f"Writing rows to Parquet file: {resource.path}")
-        import tempfile
-        import os
         df = pd.DataFrame(rows, columns=header)
-        with tempfile.NamedTemporaryFile(suffix='.parquet', delete=False) as tmp_fh:
-            tmp_path = tmp_fh.name
-        df.to_parquet(tmp_path, engine="fastparquet")
-        os.replace(tmp_path, resource.path)
+
+        def write_tmp(tmp_path: Path) -> None:
+            df.to_parquet(tmp_path, engine="fastparquet")
+
+        atomic_write(resource.path, ".parquet", write_tmp)
         # Invalidate cache after mutation
         invalidate_cache(str(resource.path))

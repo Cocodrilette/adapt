@@ -7,7 +7,7 @@ from typing import Any, Sequence
 
 from openpyxl import load_workbook
 
-from .base import ResourceDescriptor
+from .base import ResourceDescriptor, atomic_write
 from .dataset_plugin import DatasetPlugin
 
 
@@ -103,9 +103,6 @@ class ExcelPlugin(DatasetPlugin):
         """
         logger.info(f"Writing rows to Excel worksheet: {resource.metadata.get('sub_namespace', '')}")
         sub_namespace = resource.metadata["sub_namespace"]
-        # Write back atomically
-        import tempfile
-        import os
         workbook = load_workbook(resource.path)
         try:
             sheet = workbook[sub_namespace]
@@ -117,13 +114,14 @@ class ExcelPlugin(DatasetPlugin):
             for row_idx, row_data in enumerate(rows, start=2):
                 for col_idx, col_name in enumerate(header):
                     sheet.cell(row=row_idx, column=col_idx+1).value = row_data.get(col_name, "")
-            with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as tmp_fh:
-                workbook.save(tmp_fh.name)
-                tmp_path = tmp_fh.name
+
+            def write_tmp(tmp_path: Path) -> None:
+                workbook.save(tmp_path)
+
+            atomic_write(resource.path, ".xlsx", write_tmp)
         finally:
             workbook.close()
 
-        os.replace(tmp_path, resource.path)
         # Invalidate cache after mutation
         invalidate_cache(str(resource.path))
         logger.debug(f"Successfully wrote {len(rows)} rows to Excel file: {resource.path}")

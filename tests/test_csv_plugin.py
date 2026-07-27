@@ -1,15 +1,26 @@
 import csv
+import errno
 import tempfile
 from pathlib import Path
 
 import pytest
 
+import adapt.cache as cache_module
+import adapt.plugins.base as plugin_base
 from adapt.plugins.csv_plugin import CsvPlugin
 from adapt.plugins.excel_plugin import ExcelPlugin
 from adapt.plugins.python_plugin import PythonHandlerPlugin
 from adapt.plugins.base import ResourceDescriptor, PluginContext
 
 from fastapi import APIRouter
+
+
+@pytest.fixture(autouse=True)
+def isolated_cache(tmp_path):
+    db_path = str(tmp_path / "cache.db")
+    cache_module.configure(db_path)
+    yield
+    cache_module._db_path = None
 
 
 @pytest.fixture
@@ -206,6 +217,30 @@ def test_csv_plugin_write_delete(csv_plugin, csv_resource_descriptor, plugin_con
     assert "Bob" not in names
 
 
+def test_csv_plugin_write_falls_back_when_replace_raises_exdev(csv_plugin, plugin_context, tmp_path, monkeypatch):
+    path = tmp_path / "cross_device.csv"
+    path.write_text("name,age,city\nAlice,30,New York\n", encoding="utf-8")
+    descriptor = csv_plugin.load(path)
+
+    def raise_exdev(src, dst):
+        raise OSError(errno.EXDEV, "Invalid cross-device link")
+
+    monkeypatch.setattr(plugin_base.os, "replace", raise_exdev)
+
+    from fastapi import Request
+    request = Request(scope={"type": "http", "method": "POST", "path": "/"})
+    result = csv_plugin.write(
+        descriptor,
+        {"action": "create", "data": [{"name": "Bob", "age": 25, "city": "London"}]},
+        request,
+        plugin_context,
+    )
+
+    assert result["success"] is True
+    data = csv_plugin.read(descriptor, request)
+    assert [row["name"] for row in data] == ["Alice", "Bob"]
+
+
 # Excel tests
 
 def test_excel_plugin_detect(excel_plugin, sample_xlsx):
@@ -250,6 +285,33 @@ def test_excel_plugin_read(excel_plugin, excel_resource_descriptor):
     assert data[0]["name"] == "Alice"
     assert data[0]["age"] == 30  # Integers
     assert data[0]["city"] == "New York"
+
+
+def test_excel_plugin_write_falls_back_when_replace_raises_exdev(
+    excel_plugin,
+    excel_resource_descriptor,
+    plugin_context,
+    monkeypatch,
+):
+    def raise_exdev(src, dst):
+        raise OSError(errno.EXDEV, "Invalid cross-device link")
+
+    monkeypatch.setattr(plugin_base.os, "replace", raise_exdev)
+
+    from fastapi import Request
+    request = Request(scope={"type": "http", "method": "POST", "path": "/"})
+    result = excel_plugin.write(
+        excel_resource_descriptor,
+        {"action": "create", "data": [{"name": "Dana", "age": 22, "city": "Tokyo"}]},
+        request,
+        plugin_context,
+    )
+
+    assert result["success"] is True
+    data = excel_plugin.read(excel_resource_descriptor, request)
+    assert data[-1]["name"] == "Dana"
+    assert data[-1]["age"] == 22
+    assert data[-1]["city"] == "Tokyo"
 
 
 # Python handler tests

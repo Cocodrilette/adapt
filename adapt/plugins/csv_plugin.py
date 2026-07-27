@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any
 import logging
 
-from .base import ResourceDescriptor
+from .base import ResourceDescriptor, atomic_write
 from .dataset_plugin import DatasetPlugin
 
 logger = logging.getLogger(__name__)
@@ -51,17 +51,14 @@ class CsvPlugin(DatasetPlugin):
 
     def _write_rows(self, resource: ResourceDescriptor, rows: list[dict[str, Any]], header: list[str]) -> None:
         """Write rows back to CSV file atomically."""
-        # Write back atomically
-        import tempfile
-        import os
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False, newline='', encoding='utf-8') as tmp_fh:
-            writer = csv.writer(tmp_fh)
-            writer.writerow(header)
-            for row in rows:
-                writer.writerow([row.get(col, "") for col in header])
-            tmp_path = tmp_fh.name
+        def write_tmp(tmp_path: Path) -> None:
+            with tmp_path.open(mode="w", newline="", encoding="utf-8") as tmp_fh:
+                writer = csv.writer(tmp_fh)
+                writer.writerow(header)
+                for row in rows:
+                    writer.writerow([row.get(col, "") for col in header])
 
-        os.replace(tmp_path, resource.path)
+        atomic_write(resource.path, ".csv", write_tmp)
         # Invalidate cache after mutation
         invalidate_cache(str(resource.path))
         logger.debug("Wrote %d rows to %s", len(rows), resource.path)

@@ -3,9 +3,13 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from pathlib import Path
-from typing import Any, Iterable, Sequence, TYPE_CHECKING
+import errno
 import logging
+import os
+from pathlib import Path
+import shutil
+import tempfile
+from typing import Any, Callable, Iterable, Sequence, TYPE_CHECKING
 
 from fastapi import Request
 from fastapi.routing import APIRouter
@@ -160,3 +164,27 @@ def ensure_file(path: Path, content: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(content, encoding="utf-8")
     logger.debug("Created file %s", path)
+
+
+def atomic_write(target: Path, suffix: str, write_fn: Callable[[Path], None]) -> None:
+    """Write via a temp file on the target filesystem with EXDEV fallback."""
+    target.parent.mkdir(parents=True, exist_ok=True)
+    fd, tmp_name = tempfile.mkstemp(
+        dir=target.parent,
+        prefix=f".{target.stem}.",
+        suffix=suffix,
+    )
+    os.close(fd)
+    tmp_path = Path(tmp_name)
+
+    try:
+        write_fn(tmp_path)
+        try:
+            os.replace(tmp_path, target)
+        except OSError as exc:
+            if exc.errno != errno.EXDEV:
+                raise
+            shutil.copyfile(tmp_path, target)
+            tmp_path.unlink()
+    finally:
+        tmp_path.unlink(missing_ok=True)
