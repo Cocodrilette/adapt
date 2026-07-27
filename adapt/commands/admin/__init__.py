@@ -51,7 +51,9 @@ def run_admin(args):
             root=Path(args.root).resolve(),
             username=args.username,
             password=args.password,
+            password_confirm=args.password_confirm,
             is_superuser=args.superuser,
+            allow_weak_password=args.allow_weak_password,
         )
     elif args.admin_command == "delete-user":
         logger.debug("Running admin command: delete-user for username=%s", args.username)

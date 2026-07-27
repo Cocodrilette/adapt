@@ -36,6 +36,12 @@ def main() -> None:
     user_parser.add_argument("root", nargs="?", default=".", help="Document root containing the SQLite store")
     user_parser.add_argument("--username", required=True, help="Username for the superuser")
     user_parser.add_argument("--password", help="Password (will prompt if missing)")
+    user_parser.add_argument("--password-confirm", help="Password confirmation for non-interactive use")
+    user_parser.add_argument(
+        "--allow-weak-password",
+        action="store_true",
+        help="Allow a weak password without the safety confirmation prompt",
+    )
 
     list_parser = subparsers.add_parser("list-endpoints", help="List the auto-generated REST/UI endpoints")
     list_parser.add_argument("root", nargs="?", default=".", help="Document root to inspect")
@@ -65,6 +71,12 @@ def main() -> None:
     admin_create_user_parser.add_argument("root", nargs="?", default=".", help="Document root")
     admin_create_user_parser.add_argument("--username", required=True, help="Username")
     admin_create_user_parser.add_argument("--password", help="Password (will prompt if missing)")
+    admin_create_user_parser.add_argument("--password-confirm", help="Password confirmation for non-interactive use")
+    admin_create_user_parser.add_argument(
+        "--allow-weak-password",
+        action="store_true",
+        help="Allow a weak password without the safety confirmation prompt",
+    )
     admin_create_user_parser.add_argument("--superuser", action="store_true", help="Create as superuser")
 
     admin_delete_user_parser = admin_subparsers.add_parser("delete-user", help="Delete user")
@@ -116,7 +128,13 @@ def main() -> None:
         check.run_check(Path(args.root).resolve())
     elif args.command == "addsuperuser":
         logger.info("Running addsuperuser command for username=%s", args.username)
-        addsuperuser.run_add_superuser(Path(args.root).resolve(), args.username, args.password)
+        addsuperuser.run_add_superuser(
+            Path(args.root).resolve(),
+            args.username,
+            args.password,
+            password_confirm=args.password_confirm,
+            allow_weak_password=args.allow_weak_password,
+        )
     elif args.command == "list-endpoints":
         logger.info("Running list-endpoints command with root=%s", args.root)
         list_endpoints.run_list_endpoints(Path(args.root).resolve())

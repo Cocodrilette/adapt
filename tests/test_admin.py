@@ -407,7 +407,14 @@ def test_run_user_and_group_admin_commands(tmp_path, capsys):
         run_remove_from_group,
     )
 
-    run_create_user(tmp_path, username="alice", password="pw", is_superuser=False)
+    run_create_user(
+        tmp_path,
+        username="alice",
+        password="pw",
+        password_confirm="pw",
+        is_superuser=False,
+        allow_weak_password=True,
+    )
     run_create_group(tmp_path, name="editors", description="Editors group")
     run_add_to_group(tmp_path, username="alice", group_name="editors")
 
@@ -424,6 +431,124 @@ def test_run_user_and_group_admin_commands(tmp_path, capsys):
     assert "Removed user 'alice' from group 'editors'" in output
     assert "Deleted group 'editors'" in output
     assert "Deleted user 'alice'" in output
+
+
+def test_run_create_user_retries_until_passwords_match(tmp_path, capsys, monkeypatch):
+    from sqlmodel import Session, select
+
+    from adapt.commands import passwords as password_helpers
+    from adapt.commands.admin import run_create_user
+
+    entries = iter([
+        "StrongPass#2026",
+        "not-the-same",
+        "StrongPass#2026",
+        "StrongPass#2026",
+    ])
+    monkeypatch.setattr(password_helpers.getpass, "getpass", lambda _: next(entries))
+
+    run_create_user(tmp_path, username="alice", password=None, is_superuser=False)
+
+    output = capsys.readouterr().out
+    assert "Passwords do not match. Please try again." in output
+    assert "Created user 'alice'" in output
+
+    config = AdaptConfig(root=tmp_path)
+    engine = init_database(config.db_path)
+    with Session(engine) as db:
+        user = db.exec(select(User).where(User.username == "alice")).first()
+        assert user is not None
+
+
+def test_run_create_user_accepts_weak_password_after_confirmation(tmp_path, capsys, monkeypatch):
+    from sqlmodel import Session, select
+
+    from adapt.commands import passwords as password_helpers
+    from adapt.commands.admin import run_create_user
+
+    entries = iter(["password", "password"])
+    prompts = []
+
+    def fake_input(prompt: str) -> str:
+        prompts.append(prompt)
+        return "y"
+
+    monkeypatch.setattr(password_helpers.getpass, "getpass", lambda _: next(entries))
+    monkeypatch.setattr("builtins.input", fake_input)
+
+    run_create_user(tmp_path, username="bob", password=None, is_superuser=False)
+
+    output = capsys.readouterr().out
+    assert "Created user 'bob'" in output
+    assert prompts == ["This password appears weak and may be easily guessed. Use it anyway? [y/N]: "]
+
+    config = AdaptConfig(root=tmp_path)
+    engine = init_database(config.db_path)
+    with Session(engine) as db:
+        user = db.exec(select(User).where(User.username == "bob")).first()
+        assert user is not None
+
+
+def test_run_create_user_rejects_weak_password_without_override_noninteractive(tmp_path, capsys, monkeypatch):
+    from sqlmodel import Session, select
+
+    from adapt.commands import passwords as password_helpers
+    from adapt.commands.admin import run_create_user
+
+    class FakeStdin:
+        def isatty(self) -> bool:
+            return False
+
+    monkeypatch.setattr(password_helpers.sys, "stdin", FakeStdin())
+
+    run_create_user(
+        tmp_path,
+        username="carol",
+        password="password",
+        password_confirm="password",
+        is_superuser=False,
+    )
+
+    output = capsys.readouterr().out
+    assert "Choose a stronger password or re-run with --allow-weak-password." in output
+
+    config = AdaptConfig(root=tmp_path)
+    engine = init_database(config.db_path)
+    with Session(engine) as db:
+        user = db.exec(select(User).where(User.username == "carol")).first()
+        assert user is None
+
+
+def test_run_add_superuser_accepts_override_for_weak_password_noninteractive(tmp_path, capsys, monkeypatch):
+    from sqlmodel import Session, select
+
+    from adapt.commands import passwords as password_helpers
+    from adapt.commands.addsuperuser import run_add_superuser
+
+    class FakeStdin:
+        def isatty(self) -> bool:
+            return False
+
+    monkeypatch.setattr(password_helpers.sys, "stdin", FakeStdin())
+
+    run_add_superuser(
+        tmp_path,
+        username="root2",
+        password="password",
+        password_confirm="password",
+        allow_weak_password=True,
+    )
+
+    output = capsys.readouterr().out
+    assert "Created superuser 'root2'" in output
+
+    config = AdaptConfig(root=tmp_path)
+    engine = init_database(config.db_path)
+    with Session(engine) as db:
+        user = db.exec(select(User).where(User.username == "root2")).first()
+        assert user is not None
+        assert user.is_superuser is True
+
 
 def test_cache_admin(client):
     # Login first

@@ -1,4 +1,3 @@
-import getpass
 from pathlib import Path
 import logging
 
@@ -7,17 +6,26 @@ from sqlmodel import Session, select
 from ..config import AdaptConfig
 from ..storage import User, init_database
 from ..auth.password import hash_password
+from .passwords import resolve_password
 
 logger = logging.getLogger(__name__)
 
 
-def run_add_superuser(root: Path, username: str, password: str | None) -> None:
+def run_add_superuser(
+    root: Path,
+    username: str,
+    password: str | None,
+    password_confirm: str | None = None,
+    allow_weak_password: bool = False,
+) -> None:
     """Create a new superuser account.
 
     Args:
         root: The root directory path for the Adapt configuration.
         username: The username for the new superuser.
         password: The password for the new superuser. If None, prompts for input.
+        password_confirm: Confirmation for non-interactive password entry.
+        allow_weak_password: Allow weak passwords without an interactive override prompt.
 
     Returns:
         None
@@ -27,8 +35,15 @@ def run_add_superuser(root: Path, username: str, password: str | None) -> None:
     """
     config = AdaptConfig(root=root)
     engine = init_database(config.db_path)
+    password = resolve_password(
+        username=username,
+        password=password,
+        password_confirm=password_confirm,
+        allow_weak_password=allow_weak_password,
+    )
     if password is None:
-        password = getpass.getpass("Password: ")
+        logger.warning("Aborted superuser creation for %s due to password validation", username)
+        return
 
     hashed = hash_password(password)
     logger.debug("Hashed password for user %s", username)
