@@ -12,7 +12,6 @@ from fastapi.openapi.docs import get_swagger_ui_html, get_swagger_ui_oauth2_redi
 from fastapi.openapi.utils import get_openapi
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
-from fastapi.routing import APIRoute
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select, delete
@@ -126,14 +125,14 @@ def _extract_resource_namespace(path: str, all_namespaces: set[str]) -> str | No
     return None
 
 
-def _route_is_visible(route: APIRoute, request: Request, user: User | None, all_namespaces: set[str], visible_namespaces: set[str]) -> bool:
-    """Decide whether a route should appear in the current request's OpenAPI schema."""
-    path = _normalize_path(route.path)
+def _operation_is_visible(path: str, operation: dict, request: Request, user: User | None, all_namespaces: set[str], visible_namespaces: set[str]) -> bool:
+    """Decide whether an OpenAPI operation should appear in the current request's schema."""
+    path = _normalize_path(path)
 
     if path in _DOCS_INTERNAL_PATHS:
         return False
 
-    if path.startswith("/admin") or "admin" in (route.tags or []):
+    if path.startswith("/admin") or "admin" in (operation.get("tags") or []):
         return bool(user and getattr(user, "is_superuser", False))
 
     if path in _PUBLIC_OPENAPI_PATHS:
@@ -161,24 +160,73 @@ def _route_is_visible(route: APIRoute, request: Request, user: User | None, all_
     return False
 
 
+def _iter_schema_refs(node):
+    """Yield component schema names referenced anywhere within a JSON-like node."""
+    if isinstance(node, dict):
+        ref = node.get("$ref")
+        if isinstance(ref, str) and ref.startswith("#/components/schemas/"):
+            yield ref.removeprefix("#/components/schemas/")
+        for value in node.values():
+            yield from _iter_schema_refs(value)
+    elif isinstance(node, list):
+        for item in node:
+            yield from _iter_schema_refs(item)
+
+
+def _prune_unreferenced_components(schema: dict) -> None:
+    """Drop component schemas no longer reachable from any kept path.
+
+    Filtering removes paths but leaves their request/response models behind in
+    components.schemas — a non-superuser would otherwise receive the
+    field-level shape of admin-only models like UserPublic or Permission.
+    """
+    components = schema.get("components") or {}
+    schemas = components.get("schemas")
+    if not schemas:
+        return
+
+    reachable: set[str] = set()
+    pending = set(_iter_schema_refs(schema.get("paths", {})))
+    while pending:
+        name = pending.pop()
+        if name in reachable:
+            continue
+        reachable.add(name)
+        pending.update(_iter_schema_refs(schemas.get(name, {})))
+
+    pruned = {name: definition for name, definition in schemas.items() if name in reachable}
+    if pruned:
+        components["schemas"] = pruned
+    else:
+        components.pop("schemas", None)
+    if not components:
+        schema.pop("components", None)
+
+
 def _build_openapi_schema(app: FastAPI, request: Request, user: User | None) -> dict:
     """Build a filtered OpenAPI schema for the current request context."""
-    all_namespaces = _all_resource_namespaces(request.app.state.resources)
-    visible_namespaces = _visible_resource_namespaces(request, user)
-    visible_routes = [
-        route
-        for route in app.routes
-        if isinstance(route, APIRoute)
-        and route.include_in_schema
-        and _route_is_visible(route, request, user, all_namespaces, visible_namespaces)
-    ]
-
-    return get_openapi(
+    schema = get_openapi(
         title=app.title,
         version=app.version,
         description=app.description,
-        routes=visible_routes,
+        routes=app.routes,
     )
+    all_namespaces = _all_resource_namespaces(request.app.state.resources)
+    visible_namespaces = _visible_resource_namespaces(request, user)
+
+    visible_paths: dict[str, dict] = {}
+    for path, operations in schema.get("paths", {}).items():
+        kept = {
+            method: operation
+            for method, operation in operations.items()
+            if _operation_is_visible(path, operation, request, user, all_namespaces, visible_namespaces)
+        }
+        if kept:
+            visible_paths[path] = kept
+
+    schema["paths"] = visible_paths
+    _prune_unreferenced_components(schema)
+    return schema
 
 
 def _visible_resource_paths(request: Request, user: User | None) -> list[str]:

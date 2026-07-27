@@ -435,17 +435,6 @@ def test_search_endpoint_survives_hostile_queries(search_client, raw):
     assert client.get("/search", params={"q": raw}).status_code == 200
 
 
-def _openapi_exposes_included_routes(client) -> bool:
-    """Whether this FastAPI surfaces include_router routes in the schema.
-
-    FastAPI >= 0.140 wraps included routers in a single `_IncludedRouter` entry
-    rather than flattening them into `app.routes`, so `_build_openapi_schema`'s
-    top-level `isinstance(route, APIRoute)` filter drops every mounted route.
-    See the Phase 3 note in SEARCH_PLAN.md; the fix is tracked separately.
-    """
-    return "/auth/login" in client.get("/openapi.json").json()["paths"]
-
-
 def test_search_html_page_renders_results(search_client):
     client, app = search_client
     _make_user(app, "html_user", "pw", superuser=True)
@@ -543,9 +532,6 @@ def test_navbar_search_box_appears_on_content_pages(search_client):
 
 def test_search_is_advertised_to_authenticated_users_only(search_client):
     client, app = search_client
-    if not _openapi_exposes_included_routes(client):
-        pytest.skip("FastAPI hides include_router routes from the OpenAPI schema")
-
     assert "/search" not in client.get("/openapi.json").json()["paths"]
 
     _make_user(app, "root6", "pw", superuser=True)

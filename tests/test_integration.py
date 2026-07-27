@@ -273,6 +273,30 @@ def test_openapi_json_only_shows_permitted_resource_paths(tmp_path):
     assert all(not path.startswith("/admin") for path in paths)
 
 
+def test_openapi_json_prunes_admin_only_components_for_non_superuser(tmp_path):
+    """Filtering out admin paths must not leak their models in components.schemas.
+
+    A non-superuser's document should carry no field-level shape for
+    admin-only request/response models like UserPublic or Permission.
+    """
+    app = create_app(AdaptConfig(root=tmp_path))
+    client = TestClient(app)
+
+    with Session(app.state.db_engine) as db:
+        user = User(username="nonadmin", password_hash=hash_password("pass"), is_superuser=False)
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+        token = create_session(db, user.id)
+
+    client.cookies.set(SESSION_COOKIE, token)
+
+    schema = client.get("/openapi.json").json()
+    admin_only_models = {"UserPublic", "UserCreate", "Permission", "PermissionCreate", "Group", "GroupCreate"}
+    schema_names = set(schema.get("components", {}).get("schemas", {}))
+    assert not (schema_names & admin_only_models)
+
+
 def test_build_accessible_ui_links(app):
     """Test filtering of accessible UI links based on user permissions."""
     from adapt.utils import build_accessible_ui_links

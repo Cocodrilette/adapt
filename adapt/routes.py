@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from fastapi import FastAPI, Request, Depends
-from fastapi.routing import APIRouter
+from fastapi.routing import APIRoute, APIRouter
 from fastapi.responses import HTMLResponse
 import logging
 
@@ -12,6 +12,25 @@ from .plugins.base import PluginContext, ResourceDescriptor
 from .auth.dependencies import permission_dependency
 
 logger = logging.getLogger(__name__)
+
+
+def iter_effective_routes(routes, prefix: str = ""):
+    """Yield (full_path, APIRoute) for every route, descending into included routers.
+
+    FastAPI >= 0.140 represents `include_router` results as a single
+    `_IncludedRouter` wrapper rather than flattening into `app.routes`; nested
+    routes carry only their sub-path, so the mount prefix must be reapplied.
+    Works on both the flattened and nested representations.
+    """
+    for route in routes:
+        if isinstance(route, APIRoute):
+            yield prefix + route.path, route
+            continue
+        context = getattr(route, "include_context", None)
+        if context is not None:
+            yield from iter_effective_routes(
+                context.included_router.routes, prefix + (context.prefix or "")
+            )
 
 
 def get_plugin_context(request: Request) -> PluginContext:

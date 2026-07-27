@@ -2,7 +2,7 @@
 adapt.utils.query
 Utility functions for applying query parameters to data.
 """
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 import logging
 
 logger = logging.getLogger(__name__)

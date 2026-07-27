@@ -1,8 +1,8 @@
 from pathlib import Path
-from fastapi.routing import APIRoute
 from fastapi.testclient import TestClient
 from adapt.app import create_app
 from adapt.config import AdaptConfig
+from adapt.routes import iter_effective_routes
 from adapt.storage import User
 from adapt.auth.password import hash_password
 from adapt.auth.session import create_session, SESSION_COOKIE
@@ -12,13 +12,11 @@ import tempfile
 
 
 def _route_signatures(app):
-    signatures = []
-    for route in app.routes:
-        if not isinstance(route, APIRoute):
-            continue
-        for method in sorted(route.methods):
-            signatures.append(f"{method} {route.path}")
-    return sorted(signatures)
+    return sorted(
+        f"{method} {path}"
+        for path, route in iter_effective_routes(app.routes)
+        for method in sorted(route.methods)
+    )
 
 
 def _dispose_app(app):
