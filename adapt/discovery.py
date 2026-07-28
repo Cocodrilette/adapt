@@ -23,7 +23,29 @@ class DatasetResource:
     schema_path: Path
     ui_path: Path
     plugin_name: str
+    options_path: Path | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
+
+
+def read_resource_options(options_path: Path) -> dict[str, Any]:
+    """Read a companion `.options.json` file, tolerating absence and bad content.
+
+    Options are hand-written, so a malformed file must not take the server down —
+    it is logged and ignored, leaving the resource on its defaults.
+    """
+    if not options_path.exists():
+        return {}
+    try:
+        with options_path.open(encoding="utf-8") as f:
+            data = json.load(f)
+    except (OSError, json.JSONDecodeError) as exc:
+        logger.error("Ignoring invalid options file %s: %s", options_path, exc)
+        return {}
+    if not isinstance(data, dict):
+        logger.error("Ignoring options file %s: expected a JSON object", options_path)
+        return {}
+    logger.debug("Loaded options from %s: %s", options_path, data)
+    return data
 
 
 def should_ignore(path: Path) -> bool:
@@ -91,9 +113,16 @@ def discover_resources(root: Path, config: AdaptConfig) -> list[DatasetResource]
             base_path = adapt_dir / path.relative_to(root)
             schema_path = base_path.with_suffix(f"{suffix}.schema.json")
             ui_path = base_path.with_suffix(f"{suffix}.index.html")
+            options_path = base_path.with_suffix(f"{suffix}.options.json")
 
             descriptor.schema_path = schema_path
             descriptor.ui_path = ui_path
+            descriptor.options_path = options_path
+
+            # Options must be applied before companion files are generated, so a
+            # schema derived from an overridden header row is written out correctly.
+            descriptor.metadata["options"] = read_resource_options(options_path)
+            plugin.apply_options(descriptor)
 
             plugin.generate_companion_files(descriptor)
 
@@ -103,6 +132,7 @@ def discover_resources(root: Path, config: AdaptConfig) -> list[DatasetResource]
                 resource_type=descriptor.resource_type,
                 schema_path=schema_path,
                 ui_path=ui_path,
+                options_path=options_path,
                 plugin_name=plugin_cls.__name__,
                 metadata=descriptor.metadata,
             )
@@ -115,4 +145,5 @@ def discover_resources(root: Path, config: AdaptConfig) -> list[DatasetResource]
 __all__ = [
     "DatasetResource",
     "discover_resources",
+    "read_resource_options",
 ]

@@ -53,8 +53,8 @@
                 <form id="createForm">
                     {% for col_name, col_info in schema.columns.items() %}
                     <div class="mb-3">
-                        <label for="create_{{ col_name }}" class="form-label">{{ col_name }}</label>
-                        <input type="text" class="form-control" id="create_{{ col_name }}" name="{{ col_name }}">
+                        <label for="create_col_{{ loop.index0 }}" class="form-label">{{ col_name }}</label>
+                        <input type="text" class="form-control" id="create_col_{{ loop.index0 }}" name="{{ col_name }}">
                     </div>
                     {% endfor %}
                 </form>
@@ -80,8 +80,8 @@
                     <input type="hidden" id="edit_row_id" name="_row_id">
                     {% for col_name, col_info in schema.columns.items() %}
                     <div class="mb-3">
-                        <label for="edit_{{ col_name }}" class="form-label">{{ col_name }}</label>
-                        <input type="text" class="form-control" id="edit_{{ col_name }}" name="{{ col_name }}">
+                        <label for="edit_col_{{ loop.index0 }}" class="form-label">{{ col_name }}</label>
+                        <input type="text" class="form-control" id="edit_col_{{ loop.index0 }}" name="{{ col_name }}">
                     </div>
                     {% endfor %}
                 </form>
@@ -102,7 +102,16 @@
 
 <script>
     let dataTable;
-    const apiUrl = '{{ api_url }}';
+    const apiUrl = {{ api_url | tojson }};
+
+    // Column names are data, not code. They come from a spreadsheet header or a
+    // hand-written schema, so they may contain spaces, quotes, parentheses, dots
+    // or a leading digit. Interpolating them into JS expressions turns a column
+    // named "Total (net)" into a syntax error that takes down this whole script
+    // -- including the DataTable init below -- and the table renders as a bare
+    // header with no rows and nothing in the console to explain it. Everything
+    // below indexes into this array instead.
+    const COLUMNS = {{ schema.columns | list | tojson }};
 
     function csrfHeaders(headers = {}) {
         const token = window.getAdaptCsrfToken ? window.getAdaptCsrfToken() : '';
@@ -124,26 +133,40 @@
                     alert('Error loading data: ' + error);
                 }
             },
-            columns: [
-                {% for col_name, col_info in schema.columns.items() %}
-                    { data: '{{ col_name }}' },
-            {% endfor %}
-                    {% if not readonly %}
-                    {
+            columns: buildColumns()
+        });
+    });
+
+    function buildColumns() {
+        // An accessor function rather than `data: name`: DataTables parses a
+        // string source as object notation, so a column called "Q1.Revenue"
+        // would be looked up as row.Q1.Revenue and quietly resolve to nothing.
+        const columns = COLUMNS.map(function (name) {
+            return {
+                data: function (row) { return row[name]; },
+                defaultContent: '',
+                render: $.fn.dataTable.render.text()
+            };
+        });
+
+        {% if not readonly %}
+        // Guarded by Jinja rather than at runtime so a read-only page never ships
+        // write controls, not even as unreachable markup.
+        columns.push({
             data: null,
             orderable: false,
             searchable: false,
             render: function (data, type, row) {
                 return `
-                                <button class="btn btn-sm btn-warning me-1" onclick="editRecord(${row._row_id})">Edit</button>
-                                <button class="btn btn-sm btn-danger" onclick="deleteRecord(${row._row_id})">Delete</button>
-                            `;
+                    <button class="btn btn-sm btn-warning me-1" onclick="editRecord(${row._row_id})">Edit</button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteRecord(${row._row_id})">Delete</button>
+                `;
             }
-        }
-                    {% endif %}
-                ]
-            });
         });
+        {% endif %}
+
+        return columns;
+    }
 
     {% if not readonly %}
     function createRecord() {
@@ -180,9 +203,12 @@
         const rowData = dataTable.rows().data().toArray().find(row => row._row_id === rowId);
         if (rowData) {
             document.getElementById('edit_row_id').value = rowId;
-            {% for col_name, col_info in schema.columns.items() %}
-            document.getElementById('edit_{{ col_name }}').value = rowData.{{ col_name }};
-            {% endfor %}
+            COLUMNS.forEach(function (name, index) {
+                const input = document.getElementById('edit_col_' + index);
+                if (input) {
+                    input.value = rowData[name] ?? '';
+                }
+            });
             const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('editModal'));
             modal.show();
         }

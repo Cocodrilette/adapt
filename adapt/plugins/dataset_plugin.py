@@ -19,6 +19,67 @@ from .base import Plugin, ResourceDescriptor, PluginContext, SearchDocument, ens
 
 logger = logging.getLogger(__name__)
 
+#: 1-based sheet/file row that holds the column names, unless a resource
+#: overrides it via `header_row` in its companion `.options.json`.
+DEFAULT_HEADER_ROW = 1
+
+#: Marks a companion schema.json as machine-written, so Adapt may refresh it when
+#: the resource's shape changes. A schema without this key is treated as
+#: hand-maintained and is never overwritten.
+GENERATED_MARKER = "generated_by"
+GENERATED_BY_ADAPT = "adapt"
+
+
+def resolve_header_row(resource: ResourceDescriptor) -> int:
+    """Return the 1-based header row for a resource, falling back to the default.
+
+    A bad override is logged and ignored rather than raised: the value is
+    hand-written into a companion file, and a typo should not break the resource.
+    """
+    raw = resource.metadata.get("header_row", DEFAULT_HEADER_ROW)
+    try:
+        header_row = int(raw)
+    except (TypeError, ValueError):
+        logger.error("Ignoring non-integer header_row %r for %s", raw, resource.path)
+        return DEFAULT_HEADER_ROW
+    if header_row < 1:
+        logger.error("Ignoring header_row %d for %s: must be >= 1", header_row, resource.path)
+        return DEFAULT_HEADER_ROW
+    return header_row
+
+
+def write_generated_schema(path: Path, schema: dict[str, Any]) -> bool:
+    """Write an auto-derived schema, refreshing a stale one but sparing hand-edits.
+
+    `ensure_file` would leave a stale schema in place forever, which matters once a
+    resource can be re-shaped by its options: a workbook switched to `header_row: 3`
+    would keep serving the old column names to the UI while the API returned the new
+    ones, and the table would render empty.
+
+    Returns True when the file was written.
+    """
+    payload = {GENERATED_MARKER: GENERATED_BY_ADAPT, **schema}
+    if path.exists():
+        try:
+            existing = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            logger.warning("Leaving unreadable schema %s in place: %s", path, exc)
+            return False
+        if not isinstance(existing, dict) or existing.get(GENERATED_MARKER) != GENERATED_BY_ADAPT:
+            # Schemas written before the marker existed carry no provenance. One that
+            # still matches what we derive was ours, so adopt it; anything else is
+            # assumed hand-maintained and left alone.
+            if existing != schema:
+                logger.debug("Schema %s is hand-maintained; not regenerating", path)
+                return False
+            logger.debug("Adopting pre-marker generated schema %s", path)
+        if existing == payload:
+            return False
+        logger.info("Refreshing stale generated schema %s", path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    return True
+
 
 def _guess_type(value: str | None) -> str:
     """Guess the data type of a string value."""
@@ -64,7 +125,12 @@ def _build_columns(header: Sequence[str], sample: Sequence[str | None]) -> dict[
 
 class DatasetPlugin(Plugin):
     """Base plugin for dataset-like resources (CSV, Excel, etc.)."""
-    
+
+    #: (path, sub_namespace) pairs already reported by `_warn_on_column_drift`,
+    #: so a misconfigured resource warns once rather than on every request.
+    _drift_warned: set[tuple[str, str]] = set()
+
+
     def load(self, path: Path) -> ResourceDescriptor:
         """Load a resource descriptor for the dataset."""
         header, sample = self._get_header_and_sample(path)
@@ -74,6 +140,22 @@ class DatasetPlugin(Plugin):
         descriptor.metadata["primary_key"] = "_row_id"
         logger.debug("Loaded descriptor for %s", path)
         return descriptor
+
+    def derive_schema(self, resource: ResourceDescriptor) -> dict[str, Any]:
+        """Build the schema from the descriptor's parsed header and sample row.
+
+        Kept separate from `schema()` because `schema()` prefers whatever is already
+        on disk; regenerating a companion file has to compare against a freshly
+        derived schema or it would only ever rewrite a stale file with itself.
+        """
+        header = resource.metadata.get("header", [])
+        sample = resource.metadata.get("sample_row", [])
+        return {
+            "type": "object",
+            "name": resource.path.stem,
+            "primary_key": resource.metadata.get("primary_key"),
+            "columns": _build_columns(header, sample),
+        }
 
     def schema(self, resource: ResourceDescriptor) -> dict[str, Any]:
         """Get the schema for the resource, with caching."""
@@ -86,16 +168,10 @@ class DatasetPlugin(Plugin):
         if resource.schema_path and resource.schema_path.exists():
             with resource.schema_path.open() as f:
                 schema = json.load(f)
+            # Internal bookkeeping, not part of the published schema.
+            schema.pop(GENERATED_MARKER, None)
         else:
-            header = resource.metadata.get("header", [])
-            sample = resource.metadata.get("sample_row", [])
-            columns = _build_columns(header, sample)
-            schema = {
-                "type": "object",
-                "name": resource.path.stem,
-                "primary_key": resource.metadata.get("primary_key"),
-                "columns": columns,
-            }
+            schema = self.derive_schema(resource)
         set_cache(cache_key, schema, ttl_seconds=3600, resource=str(resource.path))  # 1 hour TTL
         logger.debug("Generated schema for %s", resource.path)
         return schema
@@ -105,6 +181,7 @@ class DatasetPlugin(Plugin):
         header = resource.metadata.get("header", [])
         schema = self.schema(resource)
         columns = schema.get("columns", {})
+        self._warn_on_column_drift(resource, header, columns)
         raw_rows = self._read_raw_rows(resource)
         
         # Apply Row-Level Security
@@ -169,6 +246,31 @@ class DatasetPlugin(Plugin):
 
         logger.debug("Indexed %d rows from %s", len(documents), resource.path)
         return documents
+
+    def _warn_on_column_drift(
+        self, resource: ResourceDescriptor, header: Sequence[str], columns: dict[str, Any]
+    ) -> None:
+        """Warn once when the schema's columns don't match the parsed header.
+
+        `read()` keys its row dicts off the header parsed from the file, while the
+        UI builds its table from the schema. If a hand-edited schema.json names
+        different columns the two never meet, and the table renders empty with no
+        error anywhere — so say something instead of failing silently.
+        """
+        if not columns or not header:
+            return
+        if list(columns) == list(header):
+            return
+        key = (str(resource.path), resource.metadata.get("sub_namespace", ""))
+        if key in self._drift_warned:
+            return
+        self._drift_warned.add(key)
+        logger.warning(
+            "Schema columns %s do not match the parsed header %s for %s%s; rows are keyed "
+            "by the header, so mismatched columns will render empty in the UI.",
+            list(columns), list(header), resource.path,
+            f" [{key[1]}]" if key[1] else "",
+        )
 
     def _convert_value(self, value: str, col_type: str) -> Any:
         """Convert a string value to the appropriate type."""
@@ -448,8 +550,9 @@ class DatasetPlugin(Plugin):
         logger.debug(f"Generating companion files for {descriptor.path}")
         # Generate schema.json
         if descriptor.schema_path:
-            schema = self.schema(descriptor)
-            ensure_file(descriptor.schema_path, json.dumps(schema, indent=2))
+            if write_generated_schema(descriptor.schema_path, self.derive_schema(descriptor)):
+                # The cached copy describes the shape we just replaced.
+                invalidate_cache(str(descriptor.path))
             logger.debug(f"Generated schema.json at {descriptor.schema_path}")
 
         # Generate index.html using datatable.html template

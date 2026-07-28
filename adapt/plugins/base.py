@@ -37,6 +37,7 @@ class ResourceDescriptor:
     resource_type: str
     schema_path: Path | None = None
     ui_path: Path | None = None
+    options_path: Path | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
@@ -76,6 +77,20 @@ class Plugin(ABC):
     def write(self, resource: ResourceDescriptor, data: Any, request: Request, context: PluginContext) -> Any:
         """Write data/content for the resource."""
         ...
+
+    def apply_options(self, descriptor: ResourceDescriptor) -> None:
+        """Apply per-resource options to a descriptor after discovery has located them.
+
+        Options come from the companion `.adapt/<name>[.<sub_namespace>].options.json`
+        file and are already parsed into `descriptor.metadata["options"]`. This runs
+        after `load()` because `load()` receives only a path and cannot know where the
+        companion directory is; it runs before `generate_companion_files()` so that any
+        derived schema reflects the options.
+
+        The default does nothing. Plugins override this to honour the options they
+        support.
+        """
+        logger.debug(f"No options to apply for resource: {descriptor.path}")
 
     def get_route_configs(self, descriptor: ResourceDescriptor) -> list[tuple[str, APIRouter]]:
         """Return list of (prefix, router) tuples for mounting routes."""

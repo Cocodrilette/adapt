@@ -141,6 +141,38 @@ Built-in dataset plugins generate companion files under `.adapt/`:
 
 Media plugins may write metadata-style companion content via `ui_path` handling.
 
+A generated `*.schema.json` carries `"generated_by": "adapt"`. Adapt refreshes such a
+file when the resource's shape changes, and leaves any schema without that key alone,
+so hand-written schemas are never overwritten. The key is stripped before the schema is
+served from `/schema/<resource>`.
+
+### Resource Options
+
+You may also hand-write `*.options.json` alongside the generated files to override how a
+resource is parsed. The naming matches the other companion files — for the sheet
+`Dashboard` in `report.xlsx`, that is `.adapt/report.Dashboard.options.json`.
+
+Supported keys:
+
+| Key | Applies to | Meaning |
+| --- | --- | --- |
+| `header_row` | `.xlsx` | 1-based row holding the column names. Defaults to `1`. |
+
+Use `header_row` when a sheet opens with a title banner instead of column names — the
+banner would otherwise be parsed as the header, turning a sentence into a column name:
+
+```json
+{ "header_row": 3 }
+```
+
+Rows above the header row are ignored on both read and write. An unreadable options file
+or an invalid value is logged and ignored rather than raised, so a typo cannot take the
+server down.
+
+Plugins consume options by overriding `apply_options(descriptor)`, which discovery calls
+after `load()` (which sees only a path, and so cannot locate the companion directory) and
+before `generate_companion_files()` (so a derived schema reflects the options).
+
 ## Testing Recommendations
 
 When creating plugins, test:
