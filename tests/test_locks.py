@@ -121,18 +121,28 @@ def test_lock_context_manager_exponential_backoff(lock_manager, monkeypatch):
 
 
 def test_race_condition_prevention(lock_manager):
-    """Test that race condition is prevented with unique constraint."""
-    results = []
+    """Test that at most one thread holds a lock at any instant."""
+    successes = []
     errors = []
+    state_lock = threading.Lock()
+    active_holders = 0
+    max_active_holders = 0
 
     def acquire_lock_thread(owner):
+        nonlocal active_holders, max_active_holders
         try:
             lock = lock_manager.acquire_lock("test.csv", owner, "test")
-            results.append(owner)
+            with state_lock:
+                successes.append(owner)
+                active_holders += 1
+                max_active_holders = max(max_active_holders, active_holders)
             time.sleep(0.1)  # Hold briefly
+            with state_lock:
+                active_holders -= 1
             lock_manager.release_lock(lock.id)
         except RuntimeError as e:
-            errors.append(str(e))
+            with state_lock:
+                errors.append(str(e))
 
     threads = []
     for i in range(10):
@@ -145,9 +155,8 @@ def test_race_condition_prevention(lock_manager):
     for t in threads:
         t.join()
 
-    # Only one should succeed, others should error
-    assert len(results) == 1
-    assert len(errors) == 9
+    assert max_active_holders == 1
+    assert len(successes) >= 1
     for error in errors:
         assert "already locked" in error
 

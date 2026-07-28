@@ -47,17 +47,21 @@ class LockManager:
                 return lock
             except IntegrityError:
                 db.rollback()
-                # Lock exists, check if expired
+                # Another writer won the unique-constraint race. Only retry if we can
+                # positively reclaim an expired row; otherwise report a clean conflict.
                 existing = db.exec(select(LockRecord).where(LockRecord.resource == resource)).first()
                 if existing and (existing.expires_at is None or existing.expires_at.replace(tzinfo=timezone.utc) > now):
                     logger.warning(f"Lock already exists for {resource} by {existing.owner}")
                     raise RuntimeError(f"Resource '{resource}' is already locked by {existing.owner}")
-                else:
-                    # Expired lock, delete and retry
+
+                if existing is not None:
+                    logger.debug(f"Expired lock found for {resource}, removing stale row")
                     db.delete(existing)
                     db.commit()
-                    logger.debug(f"Expired lock removed for {resource}, retrying")
                     return self.acquire_lock(resource, owner, reason, ttl_seconds)
+
+                logger.warning(f"Lock acquisition race detected for {resource} with no remaining row")
+                raise RuntimeError(f"Resource '{resource}' is already locked")
 
     def release_lock(self, lock_id: int) -> bool:
         """Release the lock with *lock_id*; returns True if a lock was deleted."""
