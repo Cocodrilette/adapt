@@ -1,0 +1,30 @@
+.adapt-sort-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    font-weight: inherit;
+    text-align: inherit;
+    cursor: pointer;
+}
+
+.adapt-sort-button:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+}
+
+.adapt-sort-indicator {
+    flex-shrink: 0;
+    font-size: 0.75rem;
+    opacity: 0.6;
+}
+
+th[data-sort-direction="asc"] .adapt-sort-indicator,
+th[data-sort-direction="desc"] .adapt-sort-indicator {
+    opacity: 1;
+}

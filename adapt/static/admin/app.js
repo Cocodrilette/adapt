@@ -58,6 +58,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const usernameDisplay = document.getElementById('current-username');
 
+    function refreshSortableTable(name) {
+        if (!window.AdaptSortableTables) {
+            return;
+        }
+        const table = tables[name] ? tables[name].closest('table') : null;
+        if (table) {
+            window.AdaptSortableTables.refresh(table);
+        }
+    }
+
     function csrfHeaders(headers = {}) {
         const token = window.getAdaptCsrfToken ? window.getAdaptCsrfToken() : '';
         if (!token) {
@@ -390,7 +400,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td>${user.id}</td>
                 <td>${user.username}</td>
                 <td><span class="badge" style="background: ${user.is_superuser ? 'var(--primary)' : '#64748b'}">${user.is_superuser ? 'Admin' : 'User'}</span></td>
-                <td>${user.is_active ? 'Yes' : 'No'}</td>
+                <td data-sort-value="${user.is_active ? '1' : '0'}">${user.is_active ? 'Yes' : 'No'}</td>
                 <td>
                     ${user.id !== state.currentUser.id ?
                 `<button class="btn danger" onclick="window.deleteUser(${user.id})">Delete</button>` :
@@ -398,11 +408,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 </td>
             </tr>
         `).join('');
+        refreshSortableTable('users');
     }
 
     function renderLocks() {
         if (state.locks.length === 0) {
             tables.locks.innerHTML = '<tr><td colspan="6" style="text-align:center; color: var(--text-secondary)">No active locks</td></tr>';
+            refreshSortableTable('locks');
             return;
         }
         tables.locks.innerHTML = state.locks.map(lock => `
@@ -411,17 +423,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td>${lock.resource}</td>
                 <td>${lock.owner}</td>
                 <td>${lock.reason || '-'}</td>
-                <td>${new Date(lock.expires_at).toLocaleString()}</td>
+                <td data-sort-value="${lock.expires_at}">${new Date(lock.expires_at).toLocaleString()}</td>
                 <td>
                     <button class="btn danger" onclick="window.releaseLock(${lock.id})">Release</button>
                 </td>
             </tr>
         `).join('');
+        refreshSortableTable('locks');
     }
 
     function renderGroups() {
         if (!state.groups || state.groups.length === 0) {
             tables.groups.innerHTML = '<tr><td colspan="4" style="text-align:center; color: var(--text-secondary)">No groups found</td></tr>';
+            refreshSortableTable('groups');
             return;
         }
         tables.groups.innerHTML = state.groups.map(group => `
@@ -436,11 +450,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 </td>
             </tr>
         `).join('');
+        refreshSortableTable('groups');
     }
 
     function renderPermissions() {
         if (!state.permissions || state.permissions.length === 0) {
             tables.permissions.innerHTML = '<tr><td colspan="5" style="text-align:center; color: var(--text-secondary)">No permissions found</td></tr>';
+            refreshSortableTable('permissions');
             return;
         }
         tables.permissions.innerHTML = state.permissions.map(perm => `
@@ -454,6 +470,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 </td>
             </tr>
         `).join('');
+        refreshSortableTable('permissions');
     }
 
     function renderMembers(members) {
@@ -550,6 +567,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const tbody = document.querySelector('#api-keys-table tbody');
         if (!state.apiKeys || state.apiKeys.length === 0) {
             tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color: var(--text-secondary)">No API Keys found</td></tr>';
+            refreshSortableTable('api-keys');
             return;
         }
         tbody.innerHTML = state.apiKeys.map(key => `
@@ -557,13 +575,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td>${key.id}</td>
                 <td>${key.user_id}</td>
                 <td>${key.description || '-'}</td>
-                <td>${key.expires_at ? new Date(key.expires_at).toLocaleDateString() : 'Never'}</td>
-                <td>${key.last_used_at ? new Date(key.last_used_at).toLocaleString() : 'Never'}</td>
+                <td data-sort-value="${key.expires_at || ''}">${key.expires_at ? new Date(key.expires_at).toLocaleDateString() : 'Never'}</td>
+                <td data-sort-value="${key.last_used_at || ''}">${key.last_used_at ? new Date(key.last_used_at).toLocaleString() : 'Never'}</td>
                 <td>
                     <button class="btn danger" onclick="window.revokeApiKey(${key.id})">Revoke</button>
                 </td>
             </tr>
         `).join('');
+        refreshSortableTable('api-keys');
     }
 
     // --- Audit Logs Logic ---
@@ -587,18 +606,20 @@ document.addEventListener('DOMContentLoaded', () => {
         const tbody = document.querySelector('#audit-logs-table tbody');
         if (!state['audit-logs'] || state['audit-logs'].length === 0) {
             tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color: var(--text-secondary)">No logs found</td></tr>';
+            refreshSortableTable('audit-logs');
             return;
         }
         tbody.innerHTML = state['audit-logs'].map(log => `
             <tr>
-                <td>${new Date(log.timestamp).toLocaleString()}</td>
-                <td>${log.user_id || 'Anon'}</td>
+                <td data-sort-value="${log.timestamp}">${new Date(log.timestamp).toLocaleString()}</td>
+                <td data-sort-value="${log.user_id || ''}">${log.user_id || 'Anon'}</td>
                 <td>${log.action}</td>
                 <td>${log.resource}</td>
                 <td>${log.details || '-'}</td>
                 <td>${log.ip_address || '-'}</td>
             </tr>
         `).join('');
+        refreshSortableTable('audit-logs');
     }
 
     // --- Cache Logic ---
@@ -615,6 +636,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const tbody = document.querySelector('#cache-table tbody');
         if (!state.cache || state.cache.length === 0) {
             tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color: var(--text-secondary)">No cache entries</td></tr>';
+            refreshSortableTable('cache');
             return;
         }
         tbody.innerHTML = state.cache.map(entry => `
@@ -622,10 +644,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td>${entry.key}</td>
                 <td>${entry.resource}</td>
                 <td>${entry.user || '-'}</td>
-                <td>${new Date(entry.expires_at).toLocaleString()}</td>
+                <td data-sort-value="${entry.expires_at}">${new Date(entry.expires_at).toLocaleString()}</td>
                 <td><button class="btn danger" onclick="deleteCacheEntry(${JSON.stringify(entry.key)}, ${JSON.stringify(entry.resource)})">Delete</button></td>
             </tr>
         `).join('');
+        refreshSortableTable('cache');
     }
 
     async function deleteCacheEntry(key, resource) {

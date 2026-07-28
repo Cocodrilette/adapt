@@ -55,6 +55,18 @@ def test_admin_ui_renders_for_superuser(client):
     assert response.status_code == 200
     assert "text/html" in response.headers["content-type"]
     assert "<h1>Adapt</h1>" in response.text
+    assert 'data-sortable-table' in response.text
+
+
+def test_profile_page_includes_sortable_table_support(client):
+    response = client.post("/auth/login", data={"username": "admin", "password": "admin"})
+    assert response.status_code == 200
+
+    response = client.get("/profile", follow_redirects=False)
+    assert response.status_code == 200
+    assert "text/html" in response.headers["content-type"]
+    assert "/static/sortable-tables.js" in response.text
+    assert "data-sortable-table" in response.text
 
 
 def test_admin_flow(client):

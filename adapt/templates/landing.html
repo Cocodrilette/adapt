@@ -13,18 +13,28 @@
 
             {% if ui_links %}
             <h2 class="h4 mb-3">Your Accessible Resources</h2>
-            <div class="list-group shadow-sm">
-                {% for res in ui_links %}
-                <a href="{{ res.url }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
-                    <span>
-                        <strong>{{ res.name }}</strong>
-                        <span class="text-body-secondary">
-                            {% if res.type == 'csv' %}CSV dataset{% elif res.type == 'excel' %}Excel workbook{% elif res.type == 'html' %}HTML page{% elif res.type == 'markdown' %}Markdown document{% elif res.type == 'media' %}Media collection{% else %}Dataset{% endif %}
-                        </span>
-                    </span>
-                    <span aria-hidden="true">Open</span>
-                </a>
-                {% endfor %}
+            <p class="text-body-secondary small mb-2">Click a column header to sort.</p>
+            <div class="card shadow-sm">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0" data-sortable-table>
+                        <thead class="table-light">
+                            <tr>
+                                <th>Resource</th>
+                                <th>Type</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for res in ui_links %}
+                            <tr>
+                                <td><a class="fw-semibold text-decoration-none" href="{{ res.url }}">{{ res.name }}</a></td>
+                                <td>
+                                    {% if res.type == 'csv' %}CSV dataset{% elif res.type == 'excel' %}Excel workbook{% elif res.type == 'html' %}HTML page{% elif res.type == 'markdown' %}Markdown document{% elif res.type == 'media' %}Media collection{% else %}Dataset{% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
             {% else %}
             <div class="alert alert-info mb-0">

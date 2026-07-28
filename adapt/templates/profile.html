@@ -126,8 +126,8 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        let html = '<div class="table-responsive"><table class="table table-striped">';
-        html += '<thead><tr><th>Description</th><th>Created</th><th>Expires</th><th>Last Used</th><th>Status</th><th>Actions</th></tr></thead>';
+        let html = '<div class="table-responsive"><table class="table table-striped" data-sortable-table>';
+        html += '<thead><tr><th>Description</th><th data-sort-type="date">Created</th><th data-sort-type="date">Expires</th><th data-sort-type="date">Last Used</th><th data-sort-type="boolean">Status</th><th data-sortable="false">Actions</th></tr></thead>';
         html += '<tbody>';
 
         keys.forEach(key => {
@@ -138,10 +138,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
             html += `<tr>
                 <td>${key.description || 'No description'}</td>
-                <td>${created}</td>
-                <td>${expires}</td>
-                <td>${lastUsed}</td>
-                <td>${status}</td>
+                <td data-sort-value="${key.created_at}">${created}</td>
+                <td data-sort-value="${key.expires_at || ''}">${expires}</td>
+                <td data-sort-value="${key.last_used_at || ''}">${lastUsed}</td>
+                <td data-sort-value="${key.is_active ? '1' : '0'}">${status}</td>
                 <td>
                     ${key.is_active ? `<button class="btn btn-sm btn-danger" onclick="revokeKey(${key.id})">Revoke</button>` : ''}
                 </td>
@@ -150,6 +150,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
         html += '</tbody></table></div>';
         keysList.innerHTML = html;
+        if (window.AdaptSortableTables) {
+            window.AdaptSortableTables.init(keysList);
+        }
     }
 
     window.revokeKey = async function(keyId) {

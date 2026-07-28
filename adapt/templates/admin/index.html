@@ -92,14 +92,14 @@
             <button class="btn primary" id="add-user-btn">Add User</button>
         </header>
         <div class="card">
-            <table id="users-table">
+            <table id="users-table" data-sortable-table>
                 <thead>
                     <tr>
-                        <th>ID</th>
+                        <th data-sort-type="number">ID</th>
                         <th>Username</th>
                         <th>Role</th>
-                        <th>Active</th>
-                        <th>Actions</th>
+                        <th data-sort-type="boolean">Active</th>
+                        <th data-sortable="false">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -115,15 +115,15 @@
             <button class="btn secondary" id="clean-locks-btn">Clean Stale Locks</button>
         </header>
         <div class="card">
-            <table id="locks-table">
+            <table id="locks-table" data-sortable-table>
                 <thead>
                     <tr>
-                        <th>ID</th>
+                        <th data-sort-type="number">ID</th>
                         <th>Resource</th>
                         <th>Owner</th>
                         <th>Reason</th>
-                        <th>Expires</th>
-                        <th>Actions</th>
+                        <th data-sort-type="date">Expires</th>
+                        <th data-sortable="false">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -139,13 +139,13 @@
             <button class="btn primary" id="add-group-btn">Add Group</button>
         </header>
         <div class="card">
-            <table id="groups-table">
+            <table id="groups-table" data-sortable-table>
                 <thead>
                     <tr>
-                        <th>ID</th>
+                        <th data-sort-type="number">ID</th>
                         <th>Name</th>
                         <th>Description</th>
-                        <th>Actions</th>
+                        <th data-sortable="false">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -161,14 +161,14 @@
             <button class="btn primary" id="add-permission-btn">Add Permission</button>
         </header>
         <div class="card">
-            <table id="permissions-table">
+            <table id="permissions-table" data-sortable-table>
                 <thead>
                     <tr>
-                        <th>ID</th>
+                        <th data-sort-type="number">ID</th>
                         <th>Resource</th>
                         <th>Action</th>
                         <th>Description</th>
-                        <th>Actions</th>
+                        <th data-sortable="false">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -184,15 +184,15 @@
             <button class="btn primary" id="add-api-key-btn">Generate Key</button>
         </header>
         <div class="card">
-            <table id="api-keys-table">
+            <table id="api-keys-table" data-sortable-table>
                 <thead>
                     <tr>
-                        <th>ID</th>
-                        <th>User ID</th>
+                        <th data-sort-type="number">ID</th>
+                        <th data-sort-type="number">User ID</th>
                         <th>Description</th>
-                        <th>Expires</th>
-                        <th>Last Used</th>
-                        <th>Actions</th>
+                        <th data-sort-type="date">Expires</th>
+                        <th data-sort-type="date">Last Used</th>
+                        <th data-sortable="false">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -213,11 +213,11 @@
             </div>
         </header>
         <div class="card">
-            <table id="audit-logs-table">
+            <table id="audit-logs-table" data-sortable-table>
                 <thead>
                     <tr>
-                        <th>Time</th>
-                        <th>User ID</th>
+                        <th data-sort-type="date">Time</th>
+                        <th data-sort-type="number">User ID</th>
                         <th>Action</th>
                         <th>Resource</th>
                         <th>Details</th>
@@ -237,14 +237,14 @@
             <button class="btn secondary" id="clear-cache-btn">Clear All Cache</button>
         </header>
         <div class="card">
-            <table id="cache-table">
+            <table id="cache-table" data-sortable-table>
                 <thead>
                     <tr>
                         <th>Key</th>
                         <th>Resource</th>
                         <th>User</th>
-                        <th>Expires At</th>
-                        <th>Actions</th>
+                        <th data-sort-type="date">Expires At</th>
+                        <th data-sortable="false">Actions</th>
                     </tr>
                 </thead>
                 <tbody>

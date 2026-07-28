@@ -237,6 +237,7 @@ def test_root_landing_page_html(superuser_client):
     assert response.status_code == 200
     assert "Welcome to Adapt" in response.text
     assert "Your Accessible Resources" in response.text
+    assert 'data-sortable-table' in response.text
     assert "Logout" in response.text
     assert "Sign in to access this Adapt workspace" not in response.text
 
