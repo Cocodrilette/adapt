@@ -25,6 +25,7 @@ A discovered resource is represented by:
 - `resource_type`
 - `schema_path`
 - `ui_path`
+- `options_path`
 - `metadata`
 
 ### `Plugin` Base Class
@@ -39,19 +40,22 @@ A plugin must implement:
 
 Optional extension points:
 
+- `apply_options(descriptor)`
 - `get_route_configs(descriptor)`
+- `index(resource)`
 - `filter_for_user(resource, user, rows)`
 - `default_ui(descriptor)`
 - `generate_companion_files(descriptor)`
 
 ## How Discovery Works
 
-Discovery scans docroot and selects plugins by file extension via `plugin_registry`.
+Discovery scans the document root and selects plugins by file extension through `plugin_registry`.
 
 Important behavior:
 
 - Extension mapping is authoritative.
-- `detect()` remains part of the plugin contract, but discovery currently selects plugin classes from extension mapping first.
+- `detect()` remains part of the plugin interface, but resource discovery does not call it.
+- A registry entry selects the plugin class for each discovered extension.
 
 ## Plugin Registration
 
@@ -79,7 +83,11 @@ Generated mounting combines prefix and namespace into routes such as:
 - `/ui/<namespace>`
 - `/media/<namespace>`
 
-For each resource, Adapt mounts routes for both extensionless and extension-qualified namespaces where applicable.
+For each resource, Adapt mounts routes for both namespace forms. For `reports.myext`,
+the API route exists at `/api/reports/` and `/api/reports.myext/`.
+
+Sub-namespaces follow the filename. For the `Summary` sheet in `reports.xlsx`,
+the forms are `/api/reports/Summary/` and `/api/reports.xlsx/Summary/`.
 
 ## Implementing a Dataset-Style Plugin
 
@@ -91,7 +99,7 @@ Expected mutation contract:
 - `PATCH /api/<resource>` with `{ "action": "update", "data": { ... } }`
 - `DELETE /api/<resource>` with `{ "action": "delete", "data": { ... } }`
 
-Mutations should:
+Mutations must:
 
 - Respect `context.readonly`
 - Use `lock_manager` to avoid unsafe concurrent writes
@@ -112,17 +120,26 @@ write path rather than relying on this hook.
 
 ```python
 from pathlib import Path
-from typing import Any
-from fastapi import Request
+from typing import Any, Iterable, Sequence
 
-from adapt.plugins.base import Plugin, ResourceDescriptor, PluginContext
+from fastapi import Request
+from fastapi.routing import APIRouter
+
+from adapt.plugins.base import (
+    Plugin,
+    PluginContext,
+    ResourceDescriptor,
+    SearchDocument,
+)
 
 
 class MyPlugin(Plugin):
     def detect(self, path: Path) -> bool:
         return path.suffix.lower() == ".myext"
 
-    def load(self, path: Path) -> ResourceDescriptor:
+    def load(
+        self, path: Path
+    ) -> ResourceDescriptor | Sequence[ResourceDescriptor]:
         return ResourceDescriptor(path=path, resource_type="myext")
 
     def schema(self, resource: ResourceDescriptor) -> dict[str, Any]:
@@ -131,11 +148,39 @@ class MyPlugin(Plugin):
     def read(self, resource: ResourceDescriptor, request: Request) -> Any:
         return {"ok": True}
 
-    def write(self, resource: ResourceDescriptor, data: Any, request: Request, context: PluginContext) -> Any:
+    def write(
+        self,
+        resource: ResourceDescriptor,
+        data: Any,
+        request: Request,
+        context: PluginContext,
+    ) -> Any:
         if context.readonly:
             raise RuntimeError("read-only mode")
         return {"success": True}
+
+    def apply_options(self, descriptor: ResourceDescriptor) -> None:
+        pass
+
+    def get_route_configs(
+        self, descriptor: ResourceDescriptor
+    ) -> list[tuple[str, APIRouter]]:
+        router = APIRouter()
+
+        @router.get("/")
+        def get_resource(request: Request) -> Any:
+            return self.read(descriptor, request)
+
+        return [("api", router)]
+
+    def index(
+        self, resource: ResourceDescriptor
+    ) -> Iterable[SearchDocument]:
+        return []
 ```
+
+Adapt mounts the returned router under both resource namespaces. It also adds
+the resource permission dependency to the router.
 
 ## Python Handler Plugins
 
@@ -150,7 +195,12 @@ Built-in dataset plugins generate companion files under `.adapt/`:
 - `*.schema.json`
 - `*.index.html`
 
-Media plugins may write metadata-style companion content via `ui_path` handling.
+The companion UI filename always ends in `.index.html`. For example, the UI
+for the `Dashboard` sheet in `report.xlsx` is
+`.adapt/report.Dashboard.index.html`.
+
+The media plugin uses `ui_path` differently. It writes JSON metadata to that
+path, not an HTML template.
 
 A generated `*.schema.json` carries `"generated_by": "adapt"`. Adapt refreshes such a
 file when the resource's shape changes, and leaves any schema without that key alone,
@@ -159,7 +209,7 @@ served from `/schema/<resource>`.
 
 ### Resource Options
 
-You may also hand-write `*.options.json` alongside the generated files to override how a
+You can also hand-write `*.options.json` alongside the generated files to override how a
 resource is parsed. The naming matches the other companion files — for the sheet
 `Dashboard` in `report.xlsx`, that is `.adapt/report.Dashboard.options.json`.
 
@@ -169,8 +219,8 @@ Supported keys:
 | --- | --- | --- |
 | `header_row` | `.xlsx` | 1-based row holding the column names. Defaults to `1`. |
 
-Use `header_row` when a sheet opens with a title banner instead of column names — the
-banner would otherwise be parsed as the header, turning a sentence into a column name:
+Use `header_row` when a sheet opens with a title banner instead of column names.
+Without this option, Adapt parses the banner as the header:
 
 ```json
 { "header_row": 3 }

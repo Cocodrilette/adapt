@@ -79,7 +79,13 @@ Each sheet becomes a resource via the "sub_namespace" mechanism:
 * `/ui/file/<sheet>` — HTML UI for each sheet
 * `/schema/file/<sheet>` — Schema for each sheet
 
-Companion files are generated per sheet: `.adapt/file.<sheet>.schema.json`, `.adapt/file.<sheet>.index.html`, etc.
+Each sheet uses these companion filenames:
+
+* `.adapt/file.<sheet>.schema.json`
+* `.adapt/file.<sheet>.index.html`
+* `.adapt/file.<sheet>.options.json`
+
+Adapt generates the schema and UI files. The options file is hand-maintained.
 
 ---
 
@@ -149,7 +155,8 @@ Adapt treats your filesystem as a structured backend environment. Companion file
 
 ### **Generation**
 
-During startup, if a companion file does not exist, Adapt generates it automatically in the `.adapt/` directory. This enables users to edit/override defaults easily without cluttering the docroot.
+During startup, Adapt generates missing dataset schema and UI files in the
+`.adapt/` directory. Adapt reads options files but does not generate them.
 
 ### **Generated Files**
 
@@ -157,7 +164,10 @@ During startup, if a companion file does not exist, Adapt generates it automatic
 | ------------------------------------------ | -------------------------------------------------- | ----------- |
 | Schema (`.adapt/*.schema.json`)            | JSON schema inferred from dataset                  | JSON schema for dataset |
 | HTML UI (`.adapt/*.index.html`)            | Jinja2 template with pre-computed schema           | Customizable HTML UI template |
-| Sheet UI (`.adapt/*.<sheet>.html`)         | Default sheet-level UI                             | Default sheet-level UI |
+| Sheet UI (`.adapt/*.<sheet>.index.html`)   | Default sheet-level UI                             | Customizable HTML UI template |
+
+The media plugin is an exception to the UI content type. It writes JSON
+metadata to its assigned `ui_path` instead of an HTML template.
 
 ### **Example generated schema**
 

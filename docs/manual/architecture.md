@@ -39,8 +39,13 @@ Flow:
 - Discovery scans docroot
 - Extension determines plugin class via `plugin_registry`
 - Plugin `load()` returns one or more resource descriptors
-- Companion files may be generated under `.adapt/`
+- Discovery assigns schema, UI, and options companion paths
+- Plugin `apply_options()` can modify each descriptor
+- Plugins can generate companion files under `.adapt/`
 - Route configs from plugin are mounted into the app
+
+The `detect()` method is part of the plugin interface. Current resource
+discovery does not call it because the registry extension selects the plugin.
 
 ### Data and Security Layer
 
@@ -73,12 +78,21 @@ For each resource, plugins provide `(prefix, router)` pairs.
 
 Routes are mounted with permission dependencies and namespace variants.
 
+Each resource has an extensionless namespace and an extension-qualified
+namespace. For example, `data.csv` uses both `data` and `data.csv`. An Excel
+sheet adds its sub-namespace to both forms, such as `data/Sheet1` and
+`data.xlsx/Sheet1`.
+
 Common prefixes:
 
 - `api`
 - `schema`
 - `ui`
 - `media`
+
+Dataset plugins use `ui_path` for an HTML template. The media plugin writes
+JSON metadata to `ui_path` and renders its HTML player from the built-in
+template.
 
 ## Data Model Summary
 
