@@ -16,7 +16,8 @@
 * Mount Python handler routers
 * Mount plugin-provided routers
 * Build Admin UI routes
-* GET responses for datasets, media, and content may be cached for performance, with automatic invalidation on writes.
+* Plugins may cache selected derived data. Generic file bodies and streamed
+  media bodies are not cached, and GET responses are not cached uniformly.
 
 The Dynamic Route Generator delegates the creation of specific routes to the plugins themselves via `get_route_configs`.
 
@@ -174,15 +175,19 @@ The Admin UI is backed by REST endpoints at `/admin/*`. All admin endpoints requ
 
 ## **5. Error Handling**
 
-All errors use a formatted JSON structure:
+Adapt does not impose one uniform error envelope. FastAPI request validation
+and most application `HTTPException` responses use a `detail` member:
 
 ```json
 {
-  "error": "ValidationError",
-  "message": "Column 'price' must be numeric",
-  "location": "row 4, column price"
+  "detail": "Not authenticated"
 }
 ```
+
+FastAPI validation failures return `422` and place structured error objects in
+the `detail` list. Dataset values are not validated against inferred or
+companion schemas. Some runtime write conflicts return `409`; an exhausted
+lock retry currently can surface as a server error instead.
 
 ---
 
@@ -228,10 +233,11 @@ way `FileResponse` and range requests already work for the REST API.
 Tools reuse `adapt.auth.dependencies.get_current_user()`,
 `check_permission()`, and `PermissionChecker.readable_resources()` — the
 identical mechanism and permission semantics the REST API and `/openapi.json`
-use. MCP clients authenticate with the `X-API-Key` header; there is no
-session-cookie or anonymous path, since MCP has no concept of an anonymous
-session the way an HTML page does. A superuser bypasses permission checks
-exactly as elsewhere.
+use. The shared resolver accepts either the `adapt_session` cookie or the
+`X-API-Key` header. API keys are the supported and recommended mechanism for
+MCP clients. Authentication is enforced when a tool executes, rather than
+during MCP initialization or tool discovery. A superuser bypasses permission
+checks exactly as elsewhere.
 
 Admin operations (users/groups/permissions/locks/cache/audit) are **not**
 exposed as MCP tools. MCP is an agent-facing *document* interface; admin

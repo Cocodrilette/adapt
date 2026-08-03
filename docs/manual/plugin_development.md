@@ -97,6 +97,17 @@ Mutations should:
 - Use `lock_manager` to avoid unsafe concurrent writes
 - Invalidate cache after successful changes
 
+The schema returned by `schema()` supplies serialization hints and UI column
+metadata. Dataset mutation code does not use it to validate writes, including
+when the schema is hand-maintained.
+
+`filter_for_user()` is applied on dataset reads and is available as a
+row-filtering extension point. The shared mutation implementation does not
+provide safe write-level row-security enforcement: it reads and rewrites the
+row collection, and row identifiers can diverge after filtering. A plugin
+that needs row-level write authorization must implement and test its own
+write path rather than relying on this hook.
+
 ## Example Skeleton
 
 ```python

@@ -12,11 +12,11 @@ Adapt is a lightweight, FastAPI-powered adaptive server that automatically turns
 - **Rich HTML UIs**: Built-in DataTables interfaces with sorting, searching, and inline editing
 - **Media Streaming**: HTTP streaming for audio/video files with gallery UIs
 - **Python Handlers**: Custom business logic via Python files with auto-registered FastAPI routers
-- **Security Layer**: Complete authentication, authorization, and audit logging system
+- **Security Layer**: Authentication, authorization, and selective audit logging
 - **Admin Interface**: Web-based administration for users, groups, permissions, and system monitoring
 - **Caching System**: SQLite-backed caching for performance optimization
 - **Plugin Architecture**: Extensible system for supporting new file types and handlers
-- **Safe Writes**: Atomic file operations with locking to prevent data corruption
+- **Safer Writes**: Per-resource locking plus atomic target replacement where supported
 - **Full-Text Search**: Permission-filtered search (`/search`) across datasets, documents, and media metadata in one ranked list
 - **MCP Interface**: An agent-facing [Model Context Protocol](https://modelcontextprotocol.io) server at `/mcp`, exposing the same permission-filtered read/write/search as tools
 
@@ -87,7 +87,7 @@ unregistered extension unless you add a plugin mapping for it.
 - **Zero Configuration**: Works out of the box with sensible defaults
 - **Security-First**: Built-in authentication and authorization
 - **Extensible**: Plugin system for custom file types and logic
-- **Safe Operations**: Atomic writes and locking prevent data corruption
+- **Safer Operations**: Atomic replacement and locking reduce write-conflict and partial-write risks
 - **Developer-Friendly**: Python-based with familiar FastAPI patterns
 
 ## Use Cases

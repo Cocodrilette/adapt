@@ -13,8 +13,10 @@ Place files into a directory, and Adapt generates:
 
 * REST CRUD APIs
 * HTML DataTables interfaces with sorting, searching, pagination, and a common navigation bar
-* Inline editing (PATCH) with schema-aware validation
-* Safe writes (locking + atomic replacement)
+* Inline editing (PATCH); inferred schemas describe serialization and UI
+  columns but do not validate mutations
+* Serialized writes using one lock record per resource, retry with exponential
+  backoff, and atomic target replacement where supported
 * Automatic schema generation and override scaffolding
 * Auto-registered FastAPI routers from Python files
 * Users, groups, and RBAC
@@ -32,7 +34,7 @@ Adapt treats your filesystem as a structured backend environment. Companion file
 * Provide instant backends for file-based assets
 * Deliver high-quality UIs without build tools
 * Support rapid custom logic with Python handler files
-* Maintain strict safety (locking, schemas, permissions)
+* Apply resource permissions and reduce write-conflict risk with locking
 * Follow local-first, privacy-centric principles
 * Enable extensibility via plugins
 

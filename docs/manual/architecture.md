@@ -105,13 +105,25 @@ Current cache implementation is SQLite-backed (`adapt/cache.py`).
 - resource-scoped invalidation
 - used by plugins and admin cache endpoints
 
+Caching is plugin-specific, not a response-wide FastAPI cache. CSV, Excel,
+and Parquet plugins cache parsed rows; dataset schemas are cached separately;
+HTML and Markdown plugins cache rendered/read content; and the media plugin
+caches extracted metadata. Generic file response bodies and streamed media
+bodies are not cached.
+
 ## Locking Model
 
 Locking uses DB records with per-resource uniqueness and expiration.
 
+- one lock record can exist per resource
 - lock acquisition retries with exponential backoff
 - stale locks can be cleaned
 - write operations use lock context manager
+- built-in dataset writers replace the target atomically where supported
+
+The lock timeout currently escapes as a server error instead of reliably
+becoming a `409`. Locking and atomic replacement reduce risk but do not promise
+that writes are race-free or cannot be interrupted.
 
 ## Observability
 

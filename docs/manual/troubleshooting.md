@@ -125,7 +125,9 @@ adapt serve . --readonly
 
 ### `409 Conflict`
 
-A lock conflict occurred. Retry after a short delay.
+Some runtime write conflicts return `409`. Retry after a short delay. If lock
+acquisition reaches its retry timeout, the current implementation can return
+`500` instead of `409`; inspect `/admin/locks` and the server log.
 
 ### Write Payload Rejected
 

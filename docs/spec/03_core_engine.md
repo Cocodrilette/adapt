@@ -59,7 +59,6 @@ Handles structured datasets (CSV, Excel sheets, Parquet-like).
 
 * Schema inference
 * Row-level CRUD
-* Type validation
 * Inline editing via PATCH
 * Duplicate row ID management
 * Write-through with locking
@@ -67,7 +66,10 @@ Handles structured datasets (CSV, Excel sheets, Parquet-like).
 
 ### **Supported Types**
 
-string, number, boolean, datetime, enum
+string, integer, number, boolean
+
+These inferred labels affect response serialization and default UI columns.
+They do not validate mutation payloads.
 
 ### **Excel Behavior**
 
@@ -88,22 +90,28 @@ Companion files are generated per sheet: `.adapt/file.<sheet>.schema.json`, `.ad
 * Infer schema from CSV/XLSX
 * Merge schema overrides
 * Generate default schema files
-* Provide validation error messages
+* Supply serialization hints and UI column metadata
+
+Neither inferred nor hand-maintained schemas are write validators.
 
 ---
 
 ## **4. Safe Writes (Locking + Atomic Write System)**
 
-### **Guarantees**
+### **Current Behavior**
 
 * One writer at a time (enforced via database unique constraint)
-* No race conditions - optimistic locking with IntegrityError handling
-* Writer cannot be interrupted mid-write
-* All writes use temp files + atomic move
+* One lock record per resource
+* Built-in dataset writes use a temporary file and atomic target replacement
+  where the platform supports it
 * Locks recorded and visible in Admin UI
-* Automatic stale lock cleanup on server startup (5-minute threshold)
 * Lock expiration with TTL (5 minutes default)
 * Retry with timeout (30 seconds) and exponential backoff (0.1s initial, doubling, 1.0s max)
+
+These behaviors reduce race and partial-write risk; they do not eliminate all
+races or make a writer uninterruptible. When retries are exhausted, the
+current timeout is not translated reliably into an HTTP `409` and may surface
+as a server error.
 
 ### **Implementation Details**
 
@@ -112,7 +120,7 @@ Companion files are generated per sheet: `.adapt/file.<sheet>.schema.json`, `.ad
 2. Database enforces uniqueness via constraint
 3. On IntegrityError, check if existing lock is expired
 4. Delete stale lock and retry
-5. Raise RuntimeError if lock is held by another process
+5. Retry a held lock with exponential backoff until the context timeout
 
 **Automatic Recovery:**
 * Server startup cleans locks older than 5 minutes
@@ -125,9 +133,13 @@ Companion files are generated per sheet: `.adapt/file.<sheet>.schema.json`, `.ad
 
 ### **Features**
 
-* Automatic cache of GET responses
-* Cache invalidation on write
+* Plugin-specific caching of parsed dataset rows, schemas, rendered/read HTML
+  and Markdown, and extracted media metadata
+* Resource-scoped invalidation by plugins after supported writes
 * Cache visibility and clearing via Admin UI
+
+Generic file bodies and streamed media bodies are not cached. There is no
+automatic cache wrapper for every GET response.
 
 ---
 

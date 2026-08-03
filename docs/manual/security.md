@@ -29,6 +29,11 @@ API key behavior:
 - Keys can be inactive or expired
 - `last_used_at` is updated on successful key usage
 
+Current limitation: authentication does not check the associated user's
+`is_active` flag. Marking a user inactive does not currently prevent an
+otherwise valid session or API key from authenticating; revoke sessions and
+keys or delete the user when access must be removed.
+
 The MCP interface (`/mcp/`, see the [MCP Guide](mcp_guide)) uses the same
 authentication resolver as HTTP routes, so tool calls accept either a
 session cookie or an API key. API keys are the supported and recommended MCP
@@ -119,6 +124,21 @@ Lock behavior includes:
 - Retry with exponential backoff
 - Timeout-based acquisition failure
 - Stale lock cleanup
+- Atomic target replacement for built-in dataset plugins where the platform
+  supports it
+
+These mechanisms reduce concurrency and partial-write risks; they do not make
+writes uninterruptible or eliminate every race. A lock acquisition that still
+fails after the retry timeout can currently surface as a server error rather
+than a `409` response.
+
+## Row-Level Filtering
+
+`Plugin.filter_for_user()` is an extension point used by dataset reads. The
+built-in plugins do not apply per-user row filters. More importantly, dataset
+writes read and rewrite row collections in a way that does not safely enforce
+write-level row security. Plugins must not treat this hook as authorization
+for row-level mutations.
 
 ## Audit and Admin Security Endpoints
 
@@ -131,6 +151,13 @@ Superuser endpoints include:
 - `/admin/cache`
 - `/admin/api-keys`
 - `/admin/audit-logs`
+
+Audit coverage is selective. Adapt records successful login/logout, API-key
+creation/revocation, user and group creation/deletion, group membership and
+permission-assignment changes, permission creation/deletion, manual lock
+operations, and cache deletion/clearing. It does not currently record dataset
+POST, PATCH, or DELETE operations, so the audit log is not a complete write
+history.
 
 ## Practical Checks
 

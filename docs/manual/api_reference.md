@@ -112,6 +112,9 @@ Adapt uses action-based mutation payloads at the collection endpoint.
 Notes:
 
 - Dataset mutations are row-oriented and use `_row_id`.
+- FastAPI requires the request body to be a JSON object, but dataset values
+  are not validated against the inferred or companion schema.
+  Unknown or incompatible values can therefore be written to the backing file.
 - In read-only mode, mutation endpoints return `405`.
 
 ## Schema Endpoint
@@ -119,6 +122,11 @@ Notes:
 **GET** `/schema/{resource}/`
 
 Returns the inferred or companion schema.
+
+For CSV and Excel resources, inference assigns only `string`, `integer`,
+`number`, or `boolean`. These types control response serialization and the
+default dataset UI columns; they are descriptive metadata, not write
+validators. A hand-maintained companion schema has the same limitation.
 
 Example:
 
@@ -270,6 +278,12 @@ Audit logs:
 
 - `GET /admin/audit-logs`
 
+Audit entries are currently created for successful login and logout; API-key
+creation and revocation; user and group creation/deletion; group membership
+changes; permission creation/deletion and group assignment changes; manual
+lock release and stale-lock cleanup; and cache clearing/deletion. Dataset
+POST, PATCH, and DELETE operations are not currently audited.
+
 Admin UI page:
 
 - `GET /admin/`
@@ -322,6 +336,18 @@ curl -H "X-API-Key: key" "http://localhost:8000/api/products/?filter={\"price\":
 - `403` - Permission denied
 - `404` - Resource not found
 - `405` - Method not allowed (including read-only mode mutations)
-- `409` - Lock conflict
+- `409` - Some runtime write conflicts
+- `422` - FastAPI request or parameter validation failure
+
+Error bodies are not a single Adapt-specific envelope. FastAPI-generated and
+most application errors use a `detail` member, for example:
+
+```json
+{"detail": "Not authenticated"}
+```
+
+Validation failures can use a list of structured objects under `detail`.
+After lock acquisition retries are exhausted, the current implementation can
+surface a server error instead of the intended `409` response.
 
 [Previous](user_guide) | [Next](admin_guide) | [Index](index)

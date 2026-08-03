@@ -20,7 +20,7 @@ The RBAC (Role-Based Access Control) system consists of six main components:
 3. **Permission System** - Resource-level permissions (read/write) assigned to groups
 4. **Enforcement Layer** - Automatic permission checking on all routes
 5. **API Key System** - Programmatic access via header-based authentication
-6. **Audit System** - Comprehensive logging of security-critical actions
+6. **Audit System** - Selective logging of implemented auth and administrative actions
 
 ### **Database Schema**
 
@@ -195,8 +195,13 @@ The `permission_dependency` function:
 - **Constant-Time Comparison:** Prevents timing attacks on password and session validation
 - **Secure by Default:** No permission = no access
 - **Superuser Bypass:** Emergency access for administrators
-- **Audit Logging:** All write operations and auth events are recorded
-- **Row-Level Security:** Plugins can enforce data filtering per user (not implemented in provided plugins, this is for third party plugins)
+- **Audit Logging:** Selected auth and administrative changes are recorded.
+  Dataset writes are not currently audited.
+- **Row-Level Filtering:** Plugins can filter rows during reads. Built-in
+  plugins do not do so, and the hook does not safely enforce write-level RLS.
+- **Inactive-user limitation:** User authentication does not currently inspect
+  `User.is_active`, so an inactive user can still authenticate with otherwise
+  valid credentials, sessions, or API keys.
 ### **Runtime Behavior Locations**
 
 - **Password Hashing (PBKDF2, 100,000 iterations)**: Implemented in `adapt/auth.py` (`hash_password`, `verify_password`).
@@ -211,10 +216,22 @@ The `permission_dependency` function:
 - The `auditlog.user_id` uses `ON DELETE SET NULL` to preserve audit records when a user is deleted.
 
 
-### **Row-Level Security (RLS)**
+### **Row-Level Filtering Extension Point**
 
-RLS allows plugins to restrict which records a user can see or modify within a dataset.
+1. **Interface**: `Plugin` includes
+   `filter_for_user(self, resource, user, rows)`.
+2. **Read behavior**: The Dataset Engine passes raw rows through this method
+   before serialization and query-parameter filtering.
+3. **Default behavior**: The base implementation returns every row, and no
+   built-in plugin overrides it.
+4. **Write limitation**: The shared write path does not safely enforce this
+   filter for mutation authorization. Plugins must implement a separate,
+   tested write policy before claiming write-level RLS.
 
-1. **Interface**: `Plugin` class includes `filter_for_user(self, resource, user, query)` method.
-2. **Enforcement**: The Dataset Engine calls this method before executing any read operation.
-3. **Implementation**: Plugins can inspect the `user` object (and their groups) and modify the `query` (e.g., adding a `WHERE owner_id = ?` clause) to return only authorized data.
+### **Current Audit Coverage**
+
+Audit entries cover successful login/logout; API-key creation/revocation;
+user and group creation/deletion; group membership changes; permission
+creation/deletion and group assignment changes; manual lock operations; and
+cache deletion/clearing. Dataset mutations and other unlisted writes do not
+create audit records.

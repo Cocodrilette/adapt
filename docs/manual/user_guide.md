@@ -118,7 +118,9 @@ open the generated UI or schema route for that resource.
 
 ## Caching and Locks
 
-- Read responses are cached using SQLite-backed cache tables.
+- Caching is plugin-specific. Dataset plugins cache parsed rows, while HTML
+  and Markdown cache content and media caches metadata. Generic file bodies
+  and streamed media bodies are not cached.
 - Mutations use locking to reduce concurrent write conflicts.
 - Lock and cache state can be inspected in the admin endpoints/UI.
 
@@ -135,7 +137,8 @@ open the generated UI or schema route for that resource.
 
 ### Mutation Fails with `409`
 
-- A lock conflict occurred; retry after a short delay
+- Some runtime write conflicts return `409`; retry after a short delay.
+- An exhausted lock retry currently can return `500` instead of `409`.
 
 ### Data Not Detected
 
