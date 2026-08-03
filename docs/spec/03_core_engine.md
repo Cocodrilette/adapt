@@ -25,20 +25,22 @@ The default registry contains these mappings:
 | `.png`, `.jpg`, `.jpeg`, `.gif`, `.webp` | Generic file |
 | `.mp4`, `.mp3`, `.avi`, `.mkv`, `.webm`, `.ogg`, `.wav` | Media |
 
-The Excel plugin rejects `.xls`, so this registered format is not readable.
-Discovery ignores extensions that are not in the registry.
+The Excel plugin reads `.xlsx` and legacy `.xls` workbooks. Legacy `.xls`
+workbooks are read-only. Discovery ignores extensions that are not in the
+registry.
 
 ## 2. Dataset engine
 
-The dataset engine handles CSV files, XLSX sheets, and Parquet files. It
+The dataset engine handles CSV files, Excel sheets, and Parquet files. It
 provides row reads, query controls, and mutation envelopes for create, update,
-and delete actions. Row identifiers are one-based positions named `_row_id`.
+and delete actions. Legacy `.xls` resources reject mutations with `405`. Row
+identifiers are one-based positions named `_row_id`.
 
 Schema inference uses `string`, `integer`, `number`, and `boolean` labels for
 CSV and Excel samples. These labels control response conversion and UI columns.
 They do not validate mutation data.
 
-Each XLSX sheet has a `sub_namespace`. For example, the `People` sheet in
+Each Excel sheet has a `sub_namespace`. For example, the `People` sheet in
 `staff.xlsx` has these extensionless routes:
 
 * `/api/staff/People/`
@@ -91,10 +93,13 @@ at 0.1 seconds, doubles, and stops at 1 second.
 Locks expire after five minutes by default. Startup deletes locks older than
 five minutes. The Admin UI can list, delete, and clean lock records.
 
-CSV, Excel, and Parquet writes use a temporary file. They replace the target
+CSV, XLSX, and Parquet writes use a temporary file. They replace the target
 with `os.replace()` where supported. An `EXDEV` error uses a copy fallback.
 These measures reduce conflict and partial-write risk. They do not remove all
 races or make a writer uninterruptible.
+
+Legacy `.xls` workbooks do not use this write path. The Excel plugin marks each
+legacy sheet as read-only to prevent data loss from an incompatible writer.
 
 The shared write method converts `RuntimeError` lock conflicts to `409`.
 However, an exhausted retry raises `TimeoutError`. This error can surface as a

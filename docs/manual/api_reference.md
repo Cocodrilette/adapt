@@ -45,6 +45,10 @@ Examples:
 
 - CSV `products.csv` -> `/api/products/`
 - Excel `inventory.xlsx` sheet `Stock` -> `/api/inventory/Stock/`
+- Legacy Excel `inventory.xls` sheet `Stock` -> `/api/inventory/Stock/`
+
+Legacy `.xls` routes support read and schema requests. Their mutation requests
+return `405` because legacy workbooks are read-only.
 
 ### List Records
 
@@ -114,6 +118,7 @@ Notes:
   are not validated against the inferred or companion schema.
   Unknown or incompatible values can therefore be written to the backing file.
 - In read-only mode, mutation endpoints return `405`.
+- Legacy `.xls` resources are always read-only and return `405` for mutations.
 
 See [Known Limitations](known_limitations.md#schema-validation) for the effect
 of this validation limit.

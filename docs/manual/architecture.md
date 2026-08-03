@@ -132,7 +132,7 @@ Locking uses DB records with per-resource uniqueness and expiration.
 - lock acquisition retries with exponential backoff
 - stale locks can be cleaned
 - write operations use lock context manager
-- built-in dataset writers replace the target atomically where supported
+- writable built-in dataset plugins replace the target atomically where supported
 
 The lock timeout currently escapes as a server error instead of reliably
 becoming a `409`. Locking and atomic replacement reduce risk but do not promise

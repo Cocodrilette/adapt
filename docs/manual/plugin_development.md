@@ -93,6 +93,11 @@ the forms are `/api/reports/Summary/` and `/api/reports.xlsx/Summary/`.
 
 Dataset-style plugins can inherit from `DatasetPlugin` to reuse schema/UI/mutation patterns.
 
+Set `descriptor.metadata["readonly"]` to `True` for a resource that cannot use
+the shared mutation path. You can add a user-facing message in
+`descriptor.metadata["readonly_reason"]`. The API returns this message with
+status `405`, and the default UI hides its edit controls.
+
 Expected mutation contract:
 
 - `POST /api/<resource>` with `{ "action": "create", "data": [...] }`
@@ -218,7 +223,7 @@ Supported keys:
 
 | Key | Applies to | Meaning |
 | --- | --- | --- |
-| `header_row` | `.xlsx` | 1-based row holding the column names. Defaults to `1`. |
+| `header_row` | `.xlsx`, `.xls` | 1-based row holding the column names. Defaults to `1`. |
 
 Use `header_row` when a sheet opens with a title banner instead of column names.
 Without this option, Adapt parses the banner as the header:

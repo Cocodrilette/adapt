@@ -78,8 +78,8 @@ The default registry maps these extension groups:
   `.jpeg`, `.gif`, `.webp`
 * Media: `.mp4`, `.mp3`, `.avi`, `.mkv`, `.webm`, `.ogg`, `.wav`
 
-The Excel plugin rejects `.xls`, so this format is not readable. Discovery
-ignores extensions that do not have a registry mapping.
+The Excel plugin reads `.xlsx` and `.xls` files. Legacy `.xls` resources are
+read-only. Discovery ignores extensions that do not have a registry mapping.
 
 ## 3. Logging
 

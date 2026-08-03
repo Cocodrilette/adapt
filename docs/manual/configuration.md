@@ -151,9 +151,9 @@ API surface. See the [MCP Guide](mcp_guide.md) for setup.
 
 ## Plugin Registry Notes
 
-The default registry shown above matches `AdaptConfig.plugin_registry`.
-However, `.xls` files are not currently readable because the Excel plugin only
-accepts `.xlsx`. Unregistered extensions are not discovered or served.
+The default registry shown above matches `AdaptConfig.plugin_registry`. The
+Excel plugin reads `.xlsx` and `.xls` files. Legacy `.xls` resources are
+read-only. Unregistered extensions are not discovered or served.
 See [Known Limitations](known_limitations.md#legacy-excel-files).
 
 The generic `FilePlugin` serves these registered types directly:

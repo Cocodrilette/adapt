@@ -1,14 +1,20 @@
 """Tests for ExcelPlugin parsing: blank rows, sheet extent, formulas and header_row."""
 import json
 from pathlib import Path
+import shutil
+from types import SimpleNamespace
 
 import pytest
+from fastapi import HTTPException
 from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Font
 
 from adapt.config import AdaptConfig
 from adapt.discovery import discover_resources
 from adapt.plugins.excel_plugin import ExcelPlugin
+
+
+LEGACY_FIXTURE = Path(__file__).parent / "fixtures" / "legacy_inventory.xls"
 
 
 @pytest.fixture(autouse=True)
@@ -24,6 +30,80 @@ def _descriptor(plugin, path, sheet_name):
         if descriptor.metadata["sub_namespace"] == sheet_name:
             return descriptor
     raise AssertionError(f"sheet {sheet_name} not found")
+
+
+def test_legacy_xls_is_discovered_and_read_per_sheet():
+    """A BIFF8 workbook is exposed with typed rows instead of being rejected."""
+    plugin = ExcelPlugin()
+
+    assert plugin.detect(LEGACY_FIXTURE)
+    descriptors = plugin.load(LEGACY_FIXTURE)
+    assert [item.metadata["sub_namespace"] for item in descriptors] == [
+        "Inventory",
+        "Summary",
+    ]
+
+    inventory = _descriptor(plugin, LEGACY_FIXTURE, "Inventory")
+    assert inventory.metadata["header"] == [
+        "name",
+        "quantity",
+        "active",
+        "updated_at",
+    ]
+    assert inventory.metadata["readonly"] is True
+
+    request = SimpleNamespace(state=SimpleNamespace(user=None))
+    assert plugin.read(inventory, request) == [
+        {
+            "_row_id": 1,
+            "name": "Widget",
+            "quantity": 12,
+            "active": True,
+            "updated_at": "2026-07-15 09:30:00",
+        },
+        {
+            "_row_id": 2,
+            "name": "Gadget",
+            "quantity": 3,
+            "active": False,
+            "updated_at": "2026-07-16 14:00:00",
+        },
+    ]
+
+
+def test_discovery_registers_legacy_xls_sheets(tmp_path):
+    """The default registry loads .xls sheets during normal discovery."""
+    root = tmp_path / "docroot"
+    root.mkdir()
+    shutil.copyfile(LEGACY_FIXTURE, root / "inventory.xls")
+
+    resources = discover_resources(root, AdaptConfig(root=root))
+    legacy_resources = [item for item in resources if item.path.suffix == ".xls"]
+
+    assert [item.metadata["sub_namespace"] for item in legacy_resources] == [
+        "Inventory",
+        "Summary",
+    ]
+    assert all(item.metadata["readonly"] for item in legacy_resources)
+
+
+def test_legacy_xls_mutation_is_rejected_before_file_access():
+    """Adapt must not corrupt BIFF8 workbooks through an incompatible writer."""
+    plugin = ExcelPlugin()
+    inventory = _descriptor(plugin, LEGACY_FIXTURE, "Inventory")
+    request = SimpleNamespace(state=SimpleNamespace(user=None))
+    context = SimpleNamespace(readonly=False)
+
+    with pytest.raises(HTTPException) as error:
+        plugin.write(
+            inventory,
+            {"action": "create", "data": [{"name": "New"}]},
+            request,
+            context,
+        )
+
+    assert error.value.status_code == 405
+    assert "convert the file to .xlsx" in error.value.detail.lower()
 
 
 def test_empty_rows_are_dropped_wherever_they_appear(tmp_path):

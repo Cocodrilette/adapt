@@ -22,8 +22,8 @@ The default generic file extensions are `.txt`, `.pdf`, `.json`, `.xml`,
 `.svg`, `.png`, `.jpg`, `.jpeg`, `.gif`, and `.webp`. The default media
 extensions are `.mp4`, `.mp3`, `.avi`, `.mkv`, `.webm`, `.ogg`, and `.wav`.
 
-The registry maps `.xls` to the Excel plugin. The plugin accepts only `.xlsx`,
-so `.xls` files are not readable.
+The Excel plugin accepts `.xlsx` and `.xls` files. It exposes one resource for
+each sheet. Legacy `.xls` resources are read-only.
 
 ## 2. Interface
 
@@ -73,5 +73,6 @@ Dataset plugins use `ui_path` for `*.index.html` templates. The media plugin
 uses `ui_path` for JSON metadata. Schema files affect serialization and UI
 metadata, but they do not validate writes.
 
-CSV, Excel, and Parquet mutations use the shared dataset write method and a
-resource lock. Each plugin writes through the shared atomic-write helper.
+CSV, XLSX, and Parquet mutations use the shared dataset write method and a
+resource lock. Each writable plugin uses the shared atomic-write helper.
+Legacy `.xls` mutations return `405`.

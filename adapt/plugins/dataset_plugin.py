@@ -299,6 +299,9 @@ class DatasetPlugin(Plugin):
         # Check if server is in read-only mode
         if context.readonly:
             raise HTTPException(status_code=405, detail="Server is in read-only mode")
+        if resource.metadata.get("readonly"):
+            detail = resource.metadata.get("readonly_reason", "Resource is read-only")
+            raise HTTPException(status_code=405, detail=detail)
         
         action = data.get("action")
         payload = data.get("data", [])
@@ -479,7 +482,10 @@ class DatasetPlugin(Plugin):
             """Get the UI for the dataset."""
             # UI should be read-only when either the server is read-only or the user lacks write permission.
             user = getattr(request.state, "user", None)
-            can_write = not request.app.state.config.readonly
+            can_write = (
+                not request.app.state.config.readonly
+                and not descriptor.metadata.get("readonly", False)
+            )
             if can_write and user is not None:
                 resource_namespace = request.url.path
                 if resource_namespace.startswith("/ui/"):

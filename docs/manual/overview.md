@@ -67,6 +67,7 @@ graph TB
 |-----------|-------------------|
 | `.csv` | CRUD API, DataTables UI, Schema |
 | `.xlsx` | Per-sheet CRUD APIs, UIs, Schemas |
+| `.xls` | Per-sheet read APIs, read-only UIs, Schemas |
 | `.parquet` | CRUD API, DataTables UI, Schema |
 | `.html` | Direct content serving |
 | `.txt`, `.pdf`, `.json`, `.xml`, `.svg` | Direct generic file serving |
@@ -75,9 +76,9 @@ graph TB
 | `.mp4`, `.mp3`, `.avi`, `.mkv`, `.webm`, `.ogg`, `.wav` | Streaming endpoints, Player UIs, Gallery |
 | `.py` | Custom FastAPI router mounting |
 
-The default registry contains `.xls`, but the Excel plugin does not read this
-format. Convert legacy Excel files to `.xlsx`. Adapt does not discover an
-unregistered extension unless you add a plugin mapping for it.
+The Excel plugin reads legacy `.xls` workbooks. These resources are read-only.
+Convert a legacy workbook to `.xlsx` before you modify it through Adapt. Adapt
+does not discover an unregistered extension unless you add a plugin mapping.
 See [Known Limitations](known_limitations.md#legacy-excel-files).
 
 ## Core Principles

@@ -12,7 +12,8 @@ routers through HTTP routes.
 
 Place files into a directory, and Adapt generates:
 
-* REST CRUD APIs and DataTables UIs for CSV, XLSX, and Parquet datasets
+* REST APIs and DataTables UIs for CSV, XLSX, XLS, and Parquet datasets
+* CRUD operations for CSV, XLSX, and Parquet datasets; legacy XLS files are read-only
 * Direct routes for registered content, generic files, and media
 * Inline editing through `PATCH`
 * Inferred schemas that control serialization and UI columns, but do not

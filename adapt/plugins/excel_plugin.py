@@ -6,6 +6,7 @@ from itertools import zip_longest
 from pathlib import Path
 from typing import Any, Iterator, Sequence
 
+import xlrd
 from openpyxl import load_workbook
 
 from .base import ResourceDescriptor, atomic_write
@@ -13,6 +14,10 @@ from .dataset_plugin import DEFAULT_HEADER_ROW, DatasetPlugin, resolve_header_ro
 
 
 logger = logging.getLogger(__name__)
+
+LEGACY_EXCEL_READONLY_REASON = (
+    "Legacy .xls workbooks are read-only. Convert the file to .xlsx to modify it"
+)
 
 
 def _is_blank(value: Any) -> bool:
@@ -74,6 +79,48 @@ def _extract_header_and_sample(
     return header, sample
 
 
+def _legacy_cell_value(cell: Any, datemode: int) -> Any:
+    """Return an xlrd cell as the closest equivalent Python value."""
+    if cell.ctype in (xlrd.XL_CELL_EMPTY, xlrd.XL_CELL_BLANK):
+        return None
+    if cell.ctype == xlrd.XL_CELL_DATE:
+        return xlrd.xldate_as_datetime(cell.value, datemode)
+    if cell.ctype == xlrd.XL_CELL_BOOLEAN:
+        return bool(cell.value)
+    if cell.ctype == xlrd.XL_CELL_NUMBER and cell.value.is_integer():
+        return int(cell.value)
+    if cell.ctype == xlrd.XL_CELL_ERROR:
+        return xlrd.biffh.error_text_from_code.get(cell.value, "#ERROR!")
+    return cell.value
+
+
+def _legacy_rows(sheet: Any, datemode: int) -> Iterator[tuple[int, list[Any]]]:
+    """Yield one-based row numbers and normalized values from an xlrd sheet."""
+    for row_index in range(sheet.nrows):
+        yield row_index + 1, [
+            _legacy_cell_value(cell, datemode) for cell in sheet.row(row_index)
+        ]
+
+
+def _extract_legacy_header_and_sample(
+    sheet: Any, datemode: int, header_row: int
+) -> tuple[list[Any], list[Any]]:
+    """Return header cells and the first non-blank row from a legacy sheet."""
+    header: list[Any] = []
+    sample: list[Any] = []
+    for row_number, cells in _legacy_rows(sheet, datemode):
+        if row_number < header_row:
+            continue
+        if row_number == header_row:
+            header = cells
+            continue
+        if all(_is_blank(cell) for cell in cells):
+            continue
+        sample = cells
+        break
+    return header, sample
+
+
 class ExcelPlugin(DatasetPlugin):
     @property
     def resource_type(self) -> str:
@@ -87,9 +134,9 @@ class ExcelPlugin(DatasetPlugin):
             path: The file path to check.
 
         Returns:
-            True if the file has .xlsx extension, False otherwise.
+            True if the file has .xlsx or .xls extension, False otherwise.
         """
-        return path.suffix.lower() == ".xlsx"
+        return path.suffix.lower() in {".xlsx", ".xls"}
 
     def load(self, path: Path) -> Sequence[ResourceDescriptor]:
         """Load Excel file and create descriptors for each worksheet.
@@ -106,6 +153,27 @@ class ExcelPlugin(DatasetPlugin):
         """
         logger.debug(f"Loading Excel file: {path}")
         descriptors = []
+        if path.suffix.lower() == ".xls":
+            with _LegacyWorkbook(path) as workbook:
+                for sheet_name in workbook.sheet_names():
+                    logger.debug(f"Processing legacy sheet: {sheet_name}")
+                    descriptor = ResourceDescriptor(
+                        path=path, resource_type=self.resource_type
+                    )
+                    descriptor.metadata["primary_key"] = "_row_id"
+                    descriptor.metadata["sub_namespace"] = sheet_name
+                    descriptor.metadata["readonly"] = True
+                    descriptor.metadata["readonly_reason"] = LEGACY_EXCEL_READONLY_REASON
+                    self._set_legacy_header_metadata(
+                        descriptor,
+                        workbook.sheet_by_name(sheet_name),
+                        workbook.datemode,
+                        DEFAULT_HEADER_ROW,
+                    )
+                    descriptors.append(descriptor)
+            logger.info(f"Loaded {len(descriptors)} worksheets from Excel file: {path}")
+            return descriptors
+
         with self._open_pair(path) as (values, formulas):
             for sheet_name in values.sheetnames:
                 logger.debug(f"Processing sheet: {sheet_name}")
@@ -140,10 +208,19 @@ class ExcelPlugin(DatasetPlugin):
         logger.info(
             "Re-reading header of %s [%s] from row %d", descriptor.path, sheet_name, header_row
         )
-        with self._open_pair(descriptor.path) as (values, formulas):
-            self._set_header_metadata(
-                descriptor, values[sheet_name], formulas[sheet_name], header_row
-            )
+        if descriptor.path.suffix.lower() == ".xls":
+            with _LegacyWorkbook(descriptor.path) as workbook:
+                self._set_legacy_header_metadata(
+                    descriptor,
+                    workbook.sheet_by_name(sheet_name),
+                    workbook.datemode,
+                    header_row,
+                )
+        else:
+            with self._open_pair(descriptor.path) as (values, formulas):
+                self._set_header_metadata(
+                    descriptor, values[sheet_name], formulas[sheet_name], header_row
+                )
         # Rows cached under the previous header row describe a different shape.
         invalidate_cache(str(descriptor.path))
 
@@ -177,8 +254,19 @@ class ExcelPlugin(DatasetPlugin):
         width = len(resource.metadata.get("header") or [])
         rows: list[list[str]] = []
         skipped = 0
-        with self._open_pair(resource.path) as (values, formulas):
-            merged = _merged_rows(values[sub_namespace], formulas[sub_namespace])
+        if resource.path.suffix.lower() == ".xls":
+            workbook_context: Any = _LegacyWorkbook(resource.path)
+        else:
+            workbook_context = self._open_pair(resource.path)
+
+        with workbook_context as workbook:
+            if resource.path.suffix.lower() == ".xls":
+                merged = _legacy_rows(
+                    workbook.sheet_by_name(sub_namespace), workbook.datemode
+                )
+            else:
+                values, formulas = workbook
+                merged = _merged_rows(values[sub_namespace], formulas[sub_namespace])
             for row_number, cells in merged:
                 if row_number <= header_row:
                     continue
@@ -245,6 +333,19 @@ class ExcelPlugin(DatasetPlugin):
         ]
         descriptor.metadata["header_row"] = header_row
 
+    def _set_legacy_header_metadata(
+        self, descriptor: ResourceDescriptor, sheet: Any, datemode: int, header_row: int
+    ) -> None:
+        """Parse header and sample metadata from a legacy BIFF worksheet."""
+        from .dataset_plugin import _ensure_header
+
+        header, sample = _extract_legacy_header_and_sample(sheet, datemode, header_row)
+        descriptor.metadata["header"] = _ensure_header(header)
+        descriptor.metadata["sample_row"] = [
+            str(cell) if cell is not None else None for cell in sample
+        ]
+        descriptor.metadata["header_row"] = header_row
+
     @staticmethod
     def _open_pair(path: Path) -> "_WorkbookPair":
         """Open the workbook twice: once for cached values, once for formulas.
@@ -277,3 +378,17 @@ class _WorkbookPair:
             self._formulas.close()
         finally:
             self._values.close()
+
+
+class _LegacyWorkbook:
+    """Context manager for an on-demand xlrd workbook."""
+
+    def __init__(self, path: Path) -> None:
+        self._path = path
+
+    def __enter__(self) -> Any:
+        self._workbook = xlrd.open_workbook(self._path, on_demand=True)
+        return self._workbook
+
+    def __exit__(self, *exc_info: Any) -> None:
+        self._workbook.release_resources()

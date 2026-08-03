@@ -2,7 +2,8 @@
 
 Adapt is a FastAPI server that turns files in a directory into APIs and UIs.
 
-- Datasets (`.csv`, `.xlsx`, `.parquet`) become CRUD endpoints and DataTables UIs
+- Datasets (`.csv`, `.xlsx`, `.xls`, `.parquet`) become API endpoints and DataTables UIs
+- Legacy `.xls` workbooks are read-only. Modern `.xlsx` workbooks support CRUD operations.
 - Markdown/HTML become browsable pages
 - Media files become streaming endpoints and player/gallery UIs
 - Python files can register custom routers

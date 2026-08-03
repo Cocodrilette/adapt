@@ -88,7 +88,7 @@ key without a session cookie to avoid CSRF handling.
 
 Supported built-in extensions are:
 
-- Datasets: `.csv`, `.xlsx`, `.parquet`
+- Datasets: `.csv`, `.xlsx`, `.xls`, `.parquet`
 - Rendered content: `.html`, `.md`
 - Python handlers: `.py`
 - Generic text and document files served by `FilePlugin`: `.txt`, `.pdf`,
@@ -97,9 +97,9 @@ Supported built-in extensions are:
   `.webp`
 - Streamed media: `.mp4`, `.mp3`, `.avi`, `.mkv`, `.webm`, `.ogg`, `.wav`
 
-`.xls` is present in the default plugin registry, but it is not currently
-readable. Convert legacy Excel files to `.xlsx`. Unregistered extensions are
-not discovered or served unless you add a plugin mapping for them.
+Adapt discovers and reads legacy `.xls` files. These resources are read-only.
+Convert a legacy workbook to `.xlsx` before you modify it through Adapt.
+Unregistered extensions need a plugin mapping before Adapt can discover them.
 See [Known Limitations](known_limitations.md#legacy-excel-files).
 
 ### Companion Files Missing
@@ -116,7 +116,8 @@ Companion files are generated under `.adapt/` for supported resource types.
 
 ### `405 Method Not Allowed`
 
-Server may be in read-only mode.
+The server can be in read-only mode. A legacy `.xls` resource is also
+read-only.
 
 ```bash
 adapt serve . --readonly

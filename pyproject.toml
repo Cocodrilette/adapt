@@ -32,6 +32,7 @@ dependencies = [
     "watchfiles",
     "jinja2",
     "openpyxl",
+    "xlrd>=2.0.2",
     "markdown",
     "python-multipart",
     "mutagen",

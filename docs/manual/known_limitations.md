@@ -7,9 +7,12 @@ The workarounds apply until the implementation changes.
 
 ### Legacy Excel Files
 
-The default plugin registry maps `.xls` files to the Excel plugin. However,
-the plugin reads only `.xlsx` files. Convert a legacy `.xls` file to `.xlsx`
-before you serve it.
+Adapt can discover and read each sheet in a legacy `.xls` workbook. The API,
+schema, search index, and DataTables UI support these sheets.
+
+Legacy `.xls` sheets are read-only. A `POST`, `PATCH`, or `DELETE` request
+returns `405`. Convert the workbook to `.xlsx` before you modify it through
+Adapt. This restriction prevents formula and workbook-feature loss.
 
 ## Server and CLI
 
