@@ -93,8 +93,10 @@ Supported built-in extensions are:
 - Datasets: `.csv`, `.xlsx`, `.parquet`
 - Rendered content: `.html`, `.md`
 - Python handlers: `.py`
-- Generic files: `.txt`, `.pdf`, `.json`, `.xml`, `.svg`, `.png`, `.jpg`,
-  `.jpeg`, `.gif`, `.webp`
+- Generic text and document files served by `FilePlugin`: `.txt`, `.pdf`,
+  `.json`, `.xml`, `.svg`
+- Generic image files served by `FilePlugin`: `.png`, `.jpg`, `.jpeg`, `.gif`,
+  `.webp`
 - Streamed media: `.mp4`, `.mp3`, `.avi`, `.mkv`, `.webm`, `.ogg`, `.wav`
 
 `.xls` is present in the default plugin registry, but it is not currently

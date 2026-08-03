@@ -47,6 +47,16 @@ Environment variables currently supported:
 - `ADAPT_DEBUG`
 - `ADAPT_MCP_ENABLED`
 
+`ADAPT_HOST` accepts a host string. `ADAPT_PORT` accepts an integer from 1
+through 65535. The Boolean variables are `ADAPT_READONLY`, `ADAPT_DEBUG`, and
+`ADAPT_MCP_ENABLED`. They accept these case-insensitive values:
+
+- True: `1`, `true`, `yes`, `on`
+- False: `0`, `false`, `no`, `off`
+
+Adapt removes surrounding spaces before it reads a Boolean value. An invalid
+Boolean value or port stops configuration loading.
+
 ## Example `conf.json`
 
 ```json
@@ -67,7 +77,16 @@ Environment variables currently supported:
     ".parquet": "adapt.plugins.parquet_plugin.ParquetPlugin",
     ".py": "adapt.plugins.python_plugin.PythonHandlerPlugin",
     ".html": "adapt.plugins.html_plugin.HtmlPlugin",
-    ".txt": "adapt.plugins.html_plugin.HtmlPlugin",
+    ".txt": "adapt.plugins.file_plugin.FilePlugin",
+    ".pdf": "adapt.plugins.file_plugin.FilePlugin",
+    ".json": "adapt.plugins.file_plugin.FilePlugin",
+    ".xml": "adapt.plugins.file_plugin.FilePlugin",
+    ".svg": "adapt.plugins.file_plugin.FilePlugin",
+    ".png": "adapt.plugins.file_plugin.FilePlugin",
+    ".jpg": "adapt.plugins.file_plugin.FilePlugin",
+    ".jpeg": "adapt.plugins.file_plugin.FilePlugin",
+    ".gif": "adapt.plugins.file_plugin.FilePlugin",
+    ".webp": "adapt.plugins.file_plugin.FilePlugin",
     ".md": "adapt.plugins.markdown_plugin.MarkdownPlugin",
     ".mp4": "adapt.plugins.media_plugin.MediaPlugin",
     ".mp3": "adapt.plugins.media_plugin.MediaPlugin",
@@ -116,6 +135,9 @@ Environment variables currently supported:
 TLS note:
 
 - `--tls-cert` and `--tls-key` must be provided together.
+- `adapt serve` sets `secure_cookies` to `true` only when it uses both TLS
+  files. It sets the value to `false` without direct TLS. This serve-time value
+  overrides `conf.json`.
 
 ## MCP Interface
 
@@ -125,6 +147,15 @@ remove the route entirely — useful for deployments that only want the REST
 API surface. See the [MCP Guide](mcp_guide) for setup.
 
 ## Plugin Registry Notes
+
+The default registry shown above matches `AdaptConfig.plugin_registry`.
+However, `.xls` files are not currently readable because the Excel plugin only
+accepts `.xlsx`. Unregistered extensions are not discovered or served.
+
+The generic `FilePlugin` serves these registered types directly:
+
+- Text: `.txt`, `.pdf`, `.json`, `.xml`, `.svg`
+- Images: `.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`
 
 `plugin_registry` values must use dotted class paths, for example:
 

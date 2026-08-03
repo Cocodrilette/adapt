@@ -13,8 +13,16 @@ A plugin is a module implementing the `Plugin` interface. Adapt maintains a `plu
 
 * **Dataset Plugins** (CSV, Excel, Parquet): Provide full CRUD APIs, schemas, and DataTables UIs. Parquet support is now robust and consistent with other dataset plugins, including atomic writes and schema inference.
 * **Handler Plugins** (Python): Custom FastAPI routers for business logic
-* **Content Plugins** (HTML, Markdown): Serve static content directly at extensionless URLs (all plugins support extensionless URLs for consistency)
-* **Media Plugins** (MP4, MP3, etc.): Provide streaming endpoints and gallery UIs for audio/video files
+* **Content Plugins** (HTML, Markdown): Serve rendered content at extensionless URLs
+* **Generic File Plugin** (TXT, PDF, JSON, XML, SVG, and common image formats): Serve registered files directly
+* **Media Plugins** (MP4, MP3, AVI, MKV, WebM, OGG, WAV): Provide streaming endpoints and gallery UIs for audio/video files
+
+The generic file extensions are `.txt`, `.pdf`, `.json`, `.xml`, `.svg`,
+`.png`, `.jpg`, `.jpeg`, `.gif`, and `.webp`. An extension must have a registry
+mapping before discovery can select its plugin.
+
+The default registry includes `.xls`, but the Excel plugin only accepts
+`.xlsx`. Therefore, legacy `.xls` files are not currently readable.
 
 ---
 

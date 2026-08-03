@@ -68,14 +68,18 @@ graph TB
 | File Type | Generated Resources |
 |-----------|-------------------|
 | `.csv` | CRUD API, DataTables UI, Schema |
-| `.xlsx`/`.xls` | Per-sheet CRUD APIs, UIs, Schemas |
+| `.xlsx` | Per-sheet CRUD APIs, UIs, Schemas |
 | `.parquet` | CRUD API, DataTables UI, Schema |
 | `.html` | Direct content serving |
-| `.txt` | Direct content serving (same as `.html`) |
+| `.txt`, `.pdf`, `.json`, `.xml`, `.svg` | Direct generic file serving |
+| `.png`, `.jpg`, `.jpeg`, `.gif`, `.webp` | Direct generic file serving |
 | `.md` | Rendered Markdown content |
-| `.mp4`/`.mp3`/etc. | Streaming endpoints, Player UIs, Gallery |
+| `.mp4`, `.mp3`, `.avi`, `.mkv`, `.webm`, `.ogg`, `.wav` | Streaming endpoints, Player UIs, Gallery |
 | `.py` | Custom FastAPI router mounting |
-| unrecognized | Direct content serving |
+
+The default registry contains `.xls`, but the Excel plugin does not read this
+format. Convert legacy Excel files to `.xlsx`. Adapt does not discover an
+unregistered extension unless you add a plugin mapping for it.
 
 ## Core Principles
 

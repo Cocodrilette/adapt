@@ -25,6 +25,10 @@ cd adapt
 pip install -e .
 ```
 
+The source checkout can contain changes that are newer than the published
+`adapt-server` release on PyPI. Identify which source or package version you use
+when you compare behavior with this documentation.
+
 ## First Run
 
 ```bash
@@ -80,6 +84,9 @@ Notes:
 
 - `--tls-cert` and `--tls-key` must be provided together.
 - `--readonly` blocks write operations.
+- `adapt serve` sets `secure_cookies` from its direct TLS configuration. It
+  sets the value to `true` only when both TLS files are configured. This
+  overrides the value in `conf.json`.
 
 ## Configuration File
 
@@ -93,8 +100,10 @@ Supported top-level keys:
 - `tls_cert`
 - `tls_key`
 - `secure_cookies`
+- `search_on_startup`
 - `readonly`
 - `debug`
+- `mcp_enabled`
 - `logging`
 
 Environment overrides:
@@ -103,6 +112,12 @@ Environment overrides:
 - `ADAPT_PORT`
 - `ADAPT_READONLY`
 - `ADAPT_DEBUG`
+- `ADAPT_MCP_ENABLED`
+
+`ADAPT_PORT` accepts an integer from 1 through 65535. The three Boolean
+variables accept `1`, `true`, `yes`, or `on` for true. They accept `0`,
+`false`, `no`, or `off` for false. Boolean values are case-insensitive and can
+have surrounding spaces.
 
 Effective precedence for serve behavior:
 

@@ -25,14 +25,31 @@ Scan the document root and identify all resources to expose.
 | ---------- | --------------------- |
 | `.csv`     | CSV Plugin            |
 | `.xlsx`    | Excel Plugin          |
-| `.xls`     | Excel Plugin          |
 | `.html`    | HTML Plugin           |
 | `.md`      | Markdown Plugin       |
 | `.parquet` | Parquet Plugin        |
 | `.py`      | Python Handler Plugin |
-| `.json`    | Schema/override files |
+| `.txt`     | Generic File Plugin   |
+| `.pdf`     | Generic File Plugin   |
+| `.json`    | Generic File Plugin   |
+| `.xml`     | Generic File Plugin   |
+| `.svg`     | Generic File Plugin   |
+| `.png`     | Generic File Plugin   |
+| `.jpg`     | Generic File Plugin   |
+| `.jpeg`    | Generic File Plugin   |
+| `.gif`     | Generic File Plugin   |
+| `.webp`    | Generic File Plugin   |
+| `.mp4`     | Media Plugin          |
+| `.mp3`     | Media Plugin          |
+| `.avi`     | Media Plugin          |
+| `.mkv`     | Media Plugin          |
+| `.webm`    | Media Plugin          |
+| `.ogg`     | Media Plugin          |
+| `.wav`     | Media Plugin          |
 
-| `.parquet` | Parquet Plugin (robust, atomic writes) |
+The default registry maps `.xls` to the Excel plugin. However, the plugin only
+accepts `.xlsx`, so `.xls` is not readable. The discovery engine ignores
+unregistered extensions.
 
 ## **2. Dataset Engine**
 
