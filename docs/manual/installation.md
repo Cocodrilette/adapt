@@ -75,7 +75,7 @@ Options:
   --port INTEGER     Port to bind to
   --tls-cert PATH    Path to TLS certificate file
   --tls-key PATH     Path to TLS private key file
-  --reload           Accepted, but file watching is not currently activated
+  --reload           Restart after Python file changes in the document root
   --readonly         Start server in read-only mode
   --debug            Enable debug logging
 ```
@@ -84,14 +84,11 @@ Notes:
 
 - `--tls-cert` and `--tls-key` must be provided together.
 - `--readonly` blocks write operations.
-- `--reload` is accepted, but it does not currently activate Uvicorn file
-  watching. Restart the server after a source change.
+- `--reload` watches Python files in the document root. Uvicorn restarts Adapt
+  after a change.
 - `adapt serve` sets `secure_cookies` from its direct TLS configuration. It
   sets the value to `true` only when both TLS files are configured. This
   overrides the value in `conf.json`.
-
-See [Known Limitations](known_limitations.md#reload-mode) for the current
-reload behavior.
 
 ## Other Core Command Options
 

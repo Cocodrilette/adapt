@@ -13,9 +13,8 @@ Both TLS file options must be present together. Direct TLS enables secure
 cookies. Without both files, `adapt serve` disables secure cookies. A reverse
 proxy that terminates TLS does not change this calculation.
 
-The CLI accepts `--reload`, but it passes an application object to Uvicorn.
-Uvicorn does not activate file watching in this mode. Restart the server after
-a source change.
+The `--reload` option gives Uvicorn an importable application factory. Uvicorn
+watches Python files in the document root and restarts Adapt after a change.
 
 Operational commands include:
 

@@ -133,14 +133,11 @@ Boolean value or port stops configuration loading.
 TLS note:
 
 - `--tls-cert` and `--tls-key` must be provided together.
-- `--reload` is accepted, but it does not currently activate Uvicorn file
-  watching. Restart the server after a source change.
+- `--reload` starts Uvicorn file watching for Python files in the document root.
+  Uvicorn restarts Adapt after a change.
 - `adapt serve` sets `secure_cookies` to `true` only when it uses both TLS
   files. It sets the value to `false` without direct TLS. This serve-time value
   overrides `conf.json`.
-
-See [Known Limitations](known_limitations.md#reload-mode) for the current
-reload behavior.
 
 ## MCP Interface
 

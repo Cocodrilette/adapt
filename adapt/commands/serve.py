@@ -1,12 +1,33 @@
-from pathlib import Path
+import json
 import logging
+import os
+from pathlib import Path
 
-from uvicorn import Config, Server
+import uvicorn
 
 from ..config import AdaptConfig
 from ..app import create_app
 
 logger = logging.getLogger(__name__)
+
+_RELOAD_OPTIONS_ENV = "_ADAPT_RELOAD_OPTIONS"
+
+
+def create_reload_app():
+    """Create the application in a Uvicorn reload worker."""
+    raw_options = os.environ.get(_RELOAD_OPTIONS_ENV)
+    if raw_options is None:
+        raise RuntimeError("Adapt reload options are not available")
+
+    options = json.loads(raw_options)
+    config = AdaptConfig(root=Path(options["root"]))
+    config.load_from_file()
+    if options["readonly"] is not None:
+        config.readonly = options["readonly"]
+    if options["debug"] is not None:
+        config.debug = options["debug"]
+    config.secure_cookies = options["secure_cookies"]
+    return create_app(config)
 
 
 def run_serve(
@@ -68,14 +89,34 @@ def run_serve(
         config.readonly,
         config.debug,
     )
-    app = create_app(config)
-    server_config = Config(
-        app=app,
-        host=config.host,
-        port=config.port,
-        reload=reload,
-        ssl_certfile=str(config.tls_cert) if use_tls else None,
-        ssl_keyfile=str(config.tls_key) if use_tls else None,
-        log_level="debug" if config.debug else "info",
+    app = create_app(config) if not reload else "adapt.commands.serve:create_reload_app"
+    reload_options = json.dumps(
+        {
+            "root": str(root.resolve()),
+            "readonly": readonly,
+            "debug": debug,
+            "secure_cookies": use_tls,
+        }
     )
-    Server(config=server_config).run()
+    previous_reload_options = os.environ.get(_RELOAD_OPTIONS_ENV)
+    if reload:
+        os.environ[_RELOAD_OPTIONS_ENV] = reload_options
+
+    try:
+        uvicorn.run(
+            app=app,
+            host=config.host,
+            port=config.port,
+            reload=reload,
+            reload_dirs=[str(root.resolve())] if reload else None,
+            factory=reload,
+            ssl_certfile=str(config.tls_cert) if use_tls else None,
+            ssl_keyfile=str(config.tls_key) if use_tls else None,
+            log_level="debug" if config.debug else "info",
+        )
+    finally:
+        if reload:
+            if previous_reload_options is None:
+                os.environ.pop(_RELOAD_OPTIONS_ENV, None)
+            else:
+                os.environ[_RELOAD_OPTIONS_ENV] = previous_reload_options

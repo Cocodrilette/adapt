@@ -66,7 +66,6 @@ Adapt includes the following major subsystems:
 The items below are proposed work, not promises of current behavior. A proposal
 can extend a partial implementation that already exists.
 
-* Make the accepted `--reload` option activate Uvicorn file watching.
 * GraphQL views
 * Complete the partially implemented common navigation bar
 * Self-signed certificate generation on startup (unless a key/cert pair is provided)

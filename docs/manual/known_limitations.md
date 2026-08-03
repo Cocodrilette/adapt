@@ -16,11 +16,6 @@ Adapt. This restriction prevents formula and workbook-feature loss.
 
 ## Server and CLI
 
-### Reload Mode
-
-The `--reload` option is accepted, but it does not activate Uvicorn file
-watching. Restart the server after a source change.
-
 ### Endpoint Listing
 
 `adapt list-endpoints` reports paths from discovered resource descriptors. It

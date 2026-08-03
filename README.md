@@ -191,9 +191,8 @@ adapt admin list-resources <root>
 adapt admin create-permissions <root> __all__
 ```
 
-The `--reload` option is accepted, but it does not currently activate Uvicorn
-file watching. Restart the server after a source change.
-See [Known Limitations](docs/manual/known_limitations.md#reload-mode).
+Use `--reload` during development. Uvicorn watches Python files in the document
+root and restarts Adapt after a change.
 
 ## Documentation
 
