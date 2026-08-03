@@ -58,6 +58,9 @@ Password handling:
 - Per-user random salt
 - Constant-time comparison for verification
 
+Users and administrators cannot change an existing password through a
+supported workflow. See [Known Limitations](known_limitations.md#password-changes).
+
 ## CSRF Protection
 
 CSRF is enforced for unsafe HTTP methods when session cookies are involved.
@@ -159,6 +162,7 @@ permission-assignment changes, permission creation/deletion, manual lock
 operations, and cache deletion/clearing. It does not currently record dataset
 POST, PATCH, or DELETE operations, so the audit log is not a complete write
 history.
+See [Known Limitations](known_limitations.md#audit-coverage).
 
 ## Practical Checks
 

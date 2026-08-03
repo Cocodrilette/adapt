@@ -55,6 +55,8 @@ Important behavior:
 - `detect()` remains part of the plugin interface, but resource discovery does not call it.
 - A registry entry selects the plugin class for each discovered extension.
 
+See [Known Limitations](known_limitations.md#plugin-detection).
+
 ## Plugin Registration
 
 Configure plugins in `DOCROOT/.adapt/conf.json` under `plugin_registry`.

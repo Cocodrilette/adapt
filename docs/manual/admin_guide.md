@@ -117,6 +117,9 @@ adapt admin create-user /path/to/docroot --username newuser --password secret
 adapt admin delete-user /path/to/docroot --username olduser
 ```
 
+The CLI cannot change an existing password. See
+[Known Limitations](known_limitations.md#password-changes).
+
 Group management:
 
 ```bash

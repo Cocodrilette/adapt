@@ -44,6 +44,7 @@ Flow:
 
 The `detect()` method is part of the plugin interface. Current resource
 discovery does not call it because the registry extension selects the plugin.
+See [Known Limitations](known_limitations.md#plugin-detection).
 
 ### Data and Security Layer
 

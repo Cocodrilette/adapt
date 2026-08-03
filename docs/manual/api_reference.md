@@ -284,6 +284,7 @@ creation and revocation; user and group creation/deletion; group membership
 changes; permission creation/deletion and group assignment changes; manual
 lock release and stale-lock cleanup; and cache clearing/deletion. Dataset
 POST, PATCH, and DELETE operations are not currently audited.
+See [Known Limitations](known_limitations.md#audit-coverage).
 
 Admin UI page:
 
