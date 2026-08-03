@@ -156,11 +156,12 @@ claude mcp add --transport http adapt http://localhost:8000/mcp \
 }
 ```
 
-MCP requires an API key on every call — there's no session-cookie or
-anonymous path, since MCP has no concept of a browser session. Set
+MCP checks authentication when a tool runs. Tool calls use the shared
+authentication resolver, which accepts a session cookie or an API key. API
+keys are the supported and recommended mechanism for MCP clients. Set
 `mcp_enabled: false` in `.adapt/conf.json` (or `ADAPT_MCP_ENABLED=false`) to
-remove `/mcp` entirely. Full walkthrough, troubleshooting, and the tool
-reference table: [docs/manual/mcp_guide.md](docs/manual/mcp_guide.md).
+remove `/mcp` entirely. For setup and troubleshooting, read the
+[MCP guide](docs/manual/mcp_guide.md).
 For dataset reads, `sort` is the column name and `order` must be `asc` or
 `desc`.
 
