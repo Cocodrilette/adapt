@@ -1,182 +1,91 @@
-# **Adapt Specification: API & UI**
+# Adapt Specification: API and UI
 
-> **Status:** This document is maintained as an implementation specification.
-> The running code on `main` wins if they differ. This is not a roadmap or the
-> authoritative user documentation. See the
+> **Status:** This document describes the current implementation. The running
+> code on `main` wins if it differs. See the
 > [documentation contract](../README.md) and [user manual](../manual/index.md).
 
-## **1. Dynamic Route Generator**
+## 1. Generated routes
 
-### **Responsibilities**
+Discovery creates a resource registry. Each registry entry contains a plugin,
+a descriptor, and its extensionless and extension-qualified namespaces. Adapt
+mounts the routers from `Plugin.get_route_configs()` for both namespaces.
 
-* Generate CRUD routes for datasets
-* Generate `/schema` route for datasets
-* Generate HTML UI endpoints for datasets
-* Generate direct content routes for HTML/Markdown files
-* Mount Python handler routers
-* Mount plugin-provided routers
-* Build Admin UI routes
-* Plugins may cache selected derived data. Generic file bodies and streamed
-  media bodies are not cached, and GET responses are not cached uniformly.
+Generated routes require authentication and a matching resource permission.
+`GET` uses the `read` action. `POST`, `PUT`, `PATCH`, and `DELETE` use the
+`write` action. Superusers bypass resource permission checks.
 
-The Dynamic Route Generator delegates the creation of specific routes to the plugins themselves via `get_route_configs`.
+Dataset resources provide trailing-slash routes under `/api/`, `/schema/`, and
+`/ui/`. HTML and Markdown resources use extensionless content routes. Generic
+files use direct content routes. Media resources use `/media/` and `/ui/`.
 
----
+Python files can export an `APIRouter` named `router`. The Python plugin mounts
+its routes under `/api/<namespace>`. Import errors cause the handler to be
+skipped with a warning.
 
-## **1.5. Landing Page**
+## 2. Landing page and discovery
 
-### **Purpose**
+The root route selects HTML or JSON from the `Accept` header.
 
-Provide a user-friendly entry point for authenticated users with an overview of available resources.
+The public HTML landing page gives unauthenticated users a sign-in link. It
+does not show resource links. An authenticated user sees UI links for readable
+resources. A superuser also sees the Admin UI link.
 
-### **Features**
+The JSON response contains resource paths that the caller can read. An
+unauthenticated caller receives an empty resource list. A superuser receives
+all discovered resource paths.
 
-* Welcome message and introduction to Adapt
-* Quick start guide for new users
-* Dynamic list of accessible resources (datasets, HTML, Markdown) filtered by user permissions
-* Admin dashboard link for superusers
-* Consistent navigation bar
+## 3. Dataset UI
 
-### **Behavior**
+The default DataTables UI supports sorting, search, pagination, row creation,
+row updates, and row deletion. The UI hides mutation controls in read-only mode
+or when the user does not have write permission.
 
-* Accessible at root URL (`/`)
-* Content adapts based on user authentication and permissions
-* For unauthenticated users, shows public HTML/Markdown content
-* For authenticated users, shows permission-filtered resources
-* API clients receive JSON list of all resources
+Dataset plugins create missing `.adapt/*.index.html` files from
+`datatable.html`. A companion template can replace the default UI. Adapt reads
+the selected template during the request. The page fetches current rows from
+the corresponding API route.
 
----
+Unsafe cookie-authenticated requests require the CSRF cookie value in the
+`X-CSRF-Token` header. Dataset companion templates receive a fetch wrapper that
+adds this header.
 
-## **2. HTML UI Renderer (DataTables)**
+## 4. Media routes
 
-### **Features**
+The shared `/ui/media` page lists media that the authenticated user can read.
+Each media resource also has a player page and a `FileResponse` route.
 
-* Sortable columns
-* Global search
-* Pagination
-* Responsive layout
-* Inline editing (PATCH)
-* Row add (POST)
-* Row delete (DELETE)
-* Common navigation bar (with links to all resources, admin dashboard (for superusers), and logout)
+The media plugin extracts available duration, bitrate, sample rate, channel,
+and tag metadata through Mutagen. It attempts to create a JPEG thumbnail from
+the one-second video frame. Metadata or thumbnail failures produce warnings
+and do not stop discovery.
 
-### **Template System**
+The plugin writes the extracted metadata and optional Base64 thumbnail to its
+assigned companion `ui_path`. It does not cache streamed file bodies.
 
-Dataset UIs use Jinja2 templates that extend `base.html` for consistent navigation. The default template (`datatable.html`) provides a full-featured DataTables interface with Bootstrap styling and modal forms for CRUD operations.
+## 5. Admin UI and system routes
 
-### **Customization**
+All `/admin/*` routes require a superuser. The Admin UI supports these actions:
 
-`.adapt/*.index.html` companion files allow full UI replacement. During startup, Adapt generates these files with the default `datatable.html` template. Users can edit these files to customize the UI while retaining the base navigation and functionality. Rendering occurs during requests, not at startup, ensuring dynamic data is always fresh.
+* List, create, and delete users
+* List, create, and delete groups
+* Add users to groups and remove them
+* List, create, and delete permissions
+* Add permissions to groups and remove them
+* List, create, and revoke API keys
+* List and filter audit records
+* List and delete cache entries, or clear the cache
+* List and release locks, or clean stale locks
 
-If no companion file exists, Adapt will create a new one from the original `datatable.html`.
+There is no admin route to update a user or change a password.
 
----
+`GET /health` is a separate system route. It returns status, version, and time
+to all callers. An authenticated caller also receives uptime, cache size, and
+route count.
 
-## **2.5. Media Gallery UI**
+## 6. Errors
 
-### **Features**
-
-* Card-based layout displaying media files with metadata and thumbnails
-* Searchable by filename
-* Responsive Bootstrap grid
-* Direct links to individual player pages
-* Common navigation bar
-
-### **Individual Player Pages**
-
-* Dedicated pages at `/ui/<filename>` for each media file
-* HTML5 `<video>` or `<audio>` elements for playback
-* Centered, responsive design
-* Metadata display (duration, bitrate, artist, title, etc.)
-* Streaming via `/media/<filename>` endpoints
-
-### **Streaming Endpoints**
-
-* HTTP range request support for efficient streaming
-* Open-standard delivery for audio/video files
-* No write operations supported
-
-### **Metadata Extraction**
-
-* Automatic extraction of duration, bitrate, sample rate, channels
-* Tag extraction for title, artist, album, genre where available
-* Metadata stored in companion files and displayed in UI
-
-### **Thumbnail Generation**
-
-* Automatic thumbnail generation for video files
-* Base64-encoded JPEG thumbnails displayed in gallery cards
-* Extracted from 1-second mark of video for preview
-
-### **Template System**
-
-Media UIs use Jinja2 templates extending `base.html`. The gallery uses `media_gallery.html` with Bootstrap cards and JavaScript search. Individual players use `media_player.html` with embedded media elements.
-
----
-
-## **3. Python Handler Loader**
-
-### **Behavior**
-
-Any `*.py` file with:
-
-```python
-from fastapi import APIRouter
-router = APIRouter()
-```
-
-…is mounted at `/api/<name>/*`.
-
-### **Uses**
-
-* Business logic
-* API composition
-* Computed endpoints
-* Authentication layers
-* User-defined microservices
-
----
-
-## **4. Admin UI**
-
-The Admin UI is backed by REST endpoints at `/admin/*`. All admin endpoints require superuser privileges.
-
-### **Modules**
-
-#### **Users**
-* Create, update, delete
-* Change password
-* Assign to groups
-
-#### **Groups**
-* Create/delete groups
-* Manage membership
-* Assign permissions
-
-#### **Permissions**
-* Full permission matrix
-* `GET/POST/DELETE /admin/permissions`
-
-#### **System**
-* Active locks (Force unlock)
-* Cache viewer (Inspect and clear cache entries)
-* Health check endpoint (`/health`)
-
-#### **API Keys**
-* Generate new keys
-* Revoke keys
-* View key metadata
-
-#### **Audit Logs**
-* View system activity
-* Filter by user, action, or resource
-
----
-
-## **5. Error Handling**
-
-Adapt does not impose one uniform error envelope. FastAPI request validation
-and most application `HTTPException` responses use a `detail` member:
+Adapt does not impose one error envelope on all code paths. Most application
+errors and FastAPI request errors use a `detail` member.
 
 ```json
 {
@@ -184,74 +93,32 @@ and most application `HTTPException` responses use a `detail` member:
 }
 ```
 
-FastAPI validation failures return `422` and place structured error objects in
-the `detail` list. Dataset values are not validated against inferred or
-companion schemas. Some runtime write conflicts return `409`; an exhausted
-lock retry currently can surface as a server error instead.
+FastAPI validation errors return `422` with structured items in `detail`.
+Dataset values are not validated against inferred or companion schemas.
 
----
+Some immediate lock conflicts return `409`. An exhausted lock retry can
+surface as a server error because the timeout is not converted to `409`.
 
-## **6. MCP Interface**
+## 7. MCP interface
 
-### **Purpose**
+When `mcp_enabled` is true, Adapt mounts a FastMCP streamable HTTP application
+at `/mcp/`. It uses the same process, TLS configuration, resource registry,
+plugins, authentication resolver, and permission checks as the HTTP routes.
 
-Expose the same permission-filtered discovery, read, write, and search
-functionality the REST API and browser UI already provide, through the Model
-Context Protocol so agentic tool-callers can talk to Adapt natively — without
-standing up a second, parallel API surface.
+The server provides these tools:
 
-### **Transport**
+| Tool | Purpose |
+| --- | --- |
+| `list_resources` | List namespaces that the caller can read |
+| `get_schema` | Get schema metadata for a readable resource |
+| `read_resource` | Read a resource and apply supported dataset query controls |
+| `write_resource` | Create, update, or delete dataset rows |
+| `search` | Search indexed content that the caller can read |
 
-A [`FastMCP`](https://pypi.org/project/mcp/) streamable-HTTP server is mounted
-at `/mcp` on the same FastAPI app `adapt serve` runs — one process, one port,
-the same TLS/host configuration as the rest of Adapt. There is no separate
-`stdio` transport or CLI subcommand.
+Authentication is enforced when a tool executes. MCP initialization and tool
+discovery do not authenticate the caller. The shared resolver accepts the
+`adapt_session` cookie or `X-API-Key` header. API keys are the supported and
+recommended mechanism for MCP clients.
 
-### **Tools**
-
-| Tool | Equivalent to | Description |
-|---|---|---|
-| `list_resources` | `GET /` (JSON) | Every resource namespace the caller may read, with its type. |
-| `get_schema` | `GET /schema/<ns>` | Columns and types for a dataset resource. |
-| `read_resource` | `GET /api/<ns>` | Read a resource's content, with `limit`/`offset`/`sort`/`order`/`filter` for datasets. |
-| `write_resource` | `POST`/`PATCH`/`DELETE /api/<ns>` | Create, update, or delete rows in a writable (dataset) resource. |
-| `search` | `GET /search` | Full-text search across every resource the caller may read. |
-
-`read_resource` / `write_resource` call the same `Plugin.read()` /
-`Plugin.write()` methods the REST routes call — every plugin's existing
-behavior transfers with no duplication. Non-dataset plugins (`markdown`,
-`html`, `media`, `python`) raise `NotImplementedError` from `write()`, which
-tools report back as an error naming the resource type.
-
-Media resources appear in `list_resources` / `search` results with their
-existing `/media/<path>` and `/ui/<path>` URLs, but streaming the raw bytes
-through a tool call is out of scope — that's left to an HTTP client, the same
-way `FileResponse` and range requests already work for the REST API.
-
-### **Authentication & Authorization**
-
-Tools reuse `adapt.auth.dependencies.get_current_user()`,
-`check_permission()`, and `PermissionChecker.readable_resources()` — the
-identical mechanism and permission semantics the REST API and `/openapi.json`
-use. The shared resolver accepts either the `adapt_session` cookie or the
-`X-API-Key` header. API keys are the supported and recommended mechanism for
-MCP clients. Authentication is enforced when a tool executes, rather than
-during MCP initialization or tool discovery. A superuser bypasses permission
-checks exactly as elsewhere.
-
-Admin operations (users/groups/permissions/locks/cache/audit) are **not**
-exposed as MCP tools. MCP is an agent-facing *document* interface; admin
-stays REST-only, superuser-gated through the browser/API-key admin UI.
-
-### **Read-only mode**
-
-`write_resource` checks `AdaptConfig.readonly` before touching a plugin and
-returns the same "Server is in read-only mode" message REST callers get for
-a 405.
-
-### **Configuration**
-
-The `mcp_enabled` key in `.adapt/conf.json` (default `true`) controls whether
-`/mcp` is mounted; it can also be set via the `ADAPT_MCP_ENABLED` environment
-variable. Disabling it removes the route entirely rather than returning an
-error for every call.
+MCP does not expose user, group, permission, lock, cache, API key, or audit
+administration. The `write_resource` tool rejects writes in read-only mode.

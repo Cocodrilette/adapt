@@ -13,147 +13,71 @@ Provide secure, multi-user access control for all Adapt resources.
 
 ### **Architecture**
 
-The RBAC (Role-Based Access Control) system consists of six main components:
+The role-based access control system has six main components:
 
-1. **Authentication Layer** - Session-based login with cookie storage and post-login redirect to landing page
+1. **Authentication layer** - Login creates a database session and an
+   `adapt_session` cookie.
 2. **User & Group Management** - Organize users into groups for permission inheritance
 3. **Permission System** - Resource-level permissions (read/write) assigned to groups
-4. **Enforcement Layer** - Automatic permission checking on all routes
-5. **API Key System** - Programmatic access via header-based authentication
-6. **Audit System** - Selective logging of implemented auth and administrative actions
+4. **Enforcement layer** - Generated resource routes require authentication
+   and a matching resource permission.
+5. **API key system** - The `X-API-Key` header supports programmatic access.
+6. **Audit system** - Implemented authentication and administrative actions
+   create selected audit records.
 
 ### **Database Schema**
 
-```sql
--- Users table
-CREATE TABLE users (
-    id INTEGER PRIMARY KEY,
-    username TEXT UNIQUE NOT NULL,
-    password_hash TEXT NOT NULL,
-    is_active BOOLEAN DEFAULT TRUE,
-    is_superuser BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP NOT NULL
-);
+`adapt/storage.py` defines these SQLModel tables:
 
--- Groups table
-CREATE TABLE groups (
-    id INTEGER PRIMARY KEY,
-    name TEXT UNIQUE NOT NULL,
-    description TEXT
-);
+| Table | Purpose | Important constraints |
+| --- | --- | --- |
+| `users` | User accounts | Unique `username` |
+| `groups` | Permission groups | Unique `name` |
+| `usergroup` | User and group links | Composite primary key. Foreign keys reference `users.id` and `groups.id`. |
+| `permission` | Resource actions | Unique pair of `resource` and `action` |
+| `grouppermission` | Group and permission links | Composite primary key. Foreign keys reference `groups.id` and `permission.id`. |
+| `dbsession` | Browser sessions | Unique `token`. `user_id` references `users.id`. |
+| `apikey` | Hashed API keys | Unique `key_hash`. `user_id` references `users.id`. |
+| `auditlog` | Selected audit events | Nullable `user_id` and nullable `resource` |
+| `lock_records` | Resource write locks | Unique indexed `resource` |
 
--- User-Group membership (many-to-many)
-CREATE TABLE usergroup (
-    user_id INTEGER REFERENCES user(id),
-    group_id INTEGER REFERENCES "group"(id),
-    PRIMARY KEY (user_id, group_id)
-);
+The `Action` enum limits permission actions to `read` and `write`.
 
--- Permissions table
-CREATE TABLE permission (
-    id INTEGER PRIMARY KEY,
-    resource TEXT NOT NULL,  -- e.g., "data", "workbook/People"
-    action TEXT NOT NULL,    -- ENUM('read', 'write') (see enum below)
-    description TEXT,
-    UNIQUE (resource, action)
-);
-
--- Group-Permission assignment (many-to-many)
-CREATE TABLE grouppermission (
-    group_id INTEGER REFERENCES "group"(id),
-    permission_id INTEGER REFERENCES permission(id),
-    PRIMARY KEY (group_id, permission_id)
-);
-
--- Session storage
-CREATE TABLE dbsession (
-    id INTEGER PRIMARY KEY,
-    user_id INTEGER REFERENCES user(id),
-    token TEXT UNIQUE NOT NULL,
-    created_at TIMESTAMP NOT NULL,
-    expires_at TIMESTAMP,
-    last_active TIMESTAMP
-);
-
--- API Keys
-CREATE TABLE apikey (
-    id INTEGER PRIMARY KEY,
-    user_id INTEGER REFERENCES user(id),
-    key_hash TEXT UNIQUE NOT NULL,
-    description TEXT,
-    created_at TIMESTAMP NOT NULL,
-    expires_at TIMESTAMP,
-    last_used_at TIMESTAMP,
-    is_active BOOLEAN DEFAULT TRUE
-);
-
--- Audit Logs
-CREATE TABLE auditlog (
-    id INTEGER PRIMARY KEY,
-    timestamp TIMESTAMP NOT NULL,
-    user_id INTEGER REFERENCES users(id) NULL,  -- nullable to preserve audit entries when users are deleted
-    action TEXT NOT NULL,    -- e.g., "login", "create_user"
-    resource TEXT NOT NULL,  -- e.g., "auth", "user"
-    -- Indexes
-    -- For common lookups we recommend indexes on the following columns:
-    -- users.username, dbsession.token, dbsession.user_id, apikey.key_hash, apikey.user_id,
-    -- permission.resource, permission.action, auditlog.user_id, auditlog.action, auditlog.resource
-
-    -- ENUM Definitions
-    -- Permission.action is an ENUM type limited to 'read' and 'write' to avoid invalid values.
-    -- For SQL dialects without native ENUM support, a CHECK constraint should be used instead.
-    details TEXT,
-    ip_address TEXT
-);
-
--- Lock Records (internal locks managed by the application)
-CREATE TABLE lock_records (
-    id INTEGER PRIMARY KEY,
-    resource TEXT UNIQUE NOT NULL,
-    owner TEXT,
-    acquired_at TIMESTAMP NOT NULL,
-    expires_at TIMESTAMP,
-    reason TEXT
-);
-
--- Cache Entries
-CREATE TABLE cache_entries (
-    id INTEGER PRIMARY KEY,
-    resource TEXT NOT NULL,
-    description TEXT
-);
-```
+The plugin cache is separate from the SQLModel definitions. `adapt/cache.py`
+creates a SQLite `cache` table with `key`, `value`, `expires_at`, `resource`,
+and `user` columns. The search subsystem creates its own SQLite tables.
 
 ### **Authentication Flow**
 
 #### **Session-Based (Browser)**
-1. User submits credentials to `/auth/login`
-2. Server validates username/password (PBKDF2 hash comparison)
-3. Server creates session record with random token
-4. Server sets HttpOnly cookie with session token
-5. Subsequent requests include cookie automatically
-6. Middleware validates session and attaches user to request
+1. Submit credentials to `POST /auth/login`.
+2. The route compares the password with its PBKDF2 hash.
+3. The route creates a seven-day database session.
+4. The route sets the HttpOnly `adapt_session` cookie.
+5. The authentication middleware resolves this cookie for later requests.
+6. Each valid request extends the session expiration by seven days.
 
 #### **API Key-Based (Programmatic)**
-1. Client includes `X-API-Key: <key>` header in request
-2. Middleware extracts key and computes SHA-256 hash
-3. Server looks up active, non-expired key by hash
-4. If valid, associated user is attached to request
+1. Include the `X-API-Key: <key>` header in the request.
+2. The authentication dependency computes the SHA-256 hash.
+3. The dependency finds an active, unexpired key with this hash.
+4. The dependency returns the associated user and updates `last_used_at`.
 
 #### **API Key Management**
-- **Self-Issue:** Authenticated users can create API keys for their own account via `/api/apikeys` POST endpoint or Profile UI
+- **Self-issue:** Authenticated users can create their own keys through
+  `POST /api/apikeys` or the Profile UI.
 - **Expiration:** Optional expiration up to 1 year maximum
 - **Revocation:** Users can revoke their own keys via `/api/apikeys/{id}` DELETE endpoint or Profile UI
 - **Security:** Keys are generated securely, hashed for storage, and never retrievable after creation
-- **Audit:** All key creation and revocation events are logged
+- **Audit:** Successful key creation and revocation create audit records.
 
 ### **Permission Checking**
 
 For each protected route:
 
-1. Extract user from session cookie
-2. Check if user is superuser (bypass all checks)
-3. Query database for user's permissions via group membership:
+1. Resolve the user from the session cookie or API key.
+2. Permit the action if the user is a superuser.
+3. Query permissions through the user group membership:
    ```sql
    SELECT permission.*
    FROM permission
@@ -163,7 +87,7 @@ For each protected route:
      AND permission.resource = ?
      AND permission.action = ?
    ```
-4. Return 403 Forbidden if no matching permission found
+4. Return `403` if no matching permission exists.
 
 ### **Automatic Enforcement**
 
@@ -177,11 +101,9 @@ app.include_router(
 )
 ```
 
-The `permission_dependency` function:
-- Extracts authenticated user from session
-- Determines action from HTTP method (GET=read, POST/PUT/PATCH/DELETE=write)
-- Checks permission via database query
-- Raises HTTPException(403) if denied
+The `permission_dependency` function resolves a session or API key. It maps
+`GET` to `read` and unsafe methods to `write`. It returns `403` when permission
+is denied.
 
 ### **Security Features**
 
@@ -189,10 +111,13 @@ The `permission_dependency` function:
 - **Session Expiration:** 7-day TTL with **active enforcement** (checked on every request)
 - **Session Cleanup:** Background task removes expired sessions daily
 - **Sliding Session Renewal:** Active sessions auto-extend by updating last_active
-- **HttpOnly Cookies:** Prevents XSS attacks
-- **Secure Cookies:** Enabled automatically with TLS (prevents MITM)
-- **SameSite=Lax:** Prevents CSRF attacks while allowing normal navigation
-- **Constant-Time Comparison:** Prevents timing attacks on password and session validation
+- **HttpOnly cookies:** JavaScript cannot read the session cookie.
+- **Secure cookies:** Direct TLS through `adapt serve` enables the Secure flag.
+- **SameSite=Lax:** The session cookie uses this browser policy.
+- **CSRF:** Unsafe cookie-authenticated requests require a matching CSRF
+  cookie and header. API-key requests are exempt.
+- **Constant-time comparison:** Password verification uses
+  `secrets.compare_digest`.
 - **Secure by Default:** No permission = no access
 - **Superuser Bypass:** Emergency access for administrators
 - **Audit Logging:** Selected auth and administrative changes are recorded.
@@ -204,16 +129,21 @@ The `permission_dependency` function:
   valid credentials, sessions, or API keys.
 ### **Runtime Behavior Locations**
 
-- **Password Hashing (PBKDF2, 100,000 iterations)**: Implemented in `adapt/auth.py` (`hash_password`, `verify_password`).
-- **Session Management (create/get sessions, sliding TTL)**: Implemented in `adapt/auth.py` (`create_session`, `get_session`, and `SESSION_TTL`).
-- **Session Cleanup Background Task:** Implemented in `adapt/app.py` (`cleanup_expired_sessions`).
-- **API Key Validation:** Implemented in `adapt/auth.py` (API key lookup and verification by hash).
-- **Audit Logging and Enforcement Hooks:** Implemented in `adapt/admin.py` and other handlers that create `AuditLog` entries. Row-level security filtering occurs in the plugin interface (plugins implement `filter_for_user`).
+- `adapt/auth/password.py` hashes and compares passwords.
+- `adapt/auth/session.py` creates, resolves, and extends sessions.
+- `adapt/auth/dependencies.py` resolves users and checks permissions.
+- `adapt/api_keys.py` creates, resolves, and revokes API keys.
+- `adapt/auth/routes.py` provides login, logout, profile, and self-service key routes.
+- `adapt/admin/` provides the administrative routes.
+- `adapt/audit.py` creates audit records.
+- `adapt/app.py` configures middleware and session cleanup.
 
 ### **Foreign Key ON DELETE behavior**
 
-- Most relationships use `ON DELETE CASCADE` to keep children from orphaning (e.g., `user` deletions cascade to their sessions and API keys, group deletions cascade to group membership and group permissions).
-- The `auditlog.user_id` uses `ON DELETE SET NULL` to preserve audit records when a user is deleted.
+- Deleting a user cascades to `usergroup`, `dbsession`, and `apikey` rows.
+- Deleting a group cascades to `usergroup` and `grouppermission` rows.
+- Deleting a permission cascades to `grouppermission` rows.
+- Deleting an audit user sets `auditlog.user_id` to null.
 
 
 ### **Row-Level Filtering Extension Point**
@@ -230,8 +160,13 @@ The `permission_dependency` function:
 
 ### **Current Audit Coverage**
 
-Audit entries cover successful login/logout; API-key creation/revocation;
-user and group creation/deletion; group membership changes; permission
-creation/deletion and group assignment changes; manual lock operations; and
-cache deletion/clearing. Dataset mutations and other unlisted writes do not
-create audit records.
+Audit entries cover successful login and logout. They cover API-key creation
+and revocation. They also cover these administrative changes:
+
+* User and group creation or deletion
+* Group membership changes
+* Permission creation, deletion, and group assignment changes
+* Manual lock operations
+* Cache entry deletion and cache clearing
+
+Dataset mutations and other unlisted writes do not create audit records.

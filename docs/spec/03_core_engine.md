@@ -1,183 +1,113 @@
-# **Adapt Specification: Core Engine**
+# Adapt Specification: Core Engine
 
-> **Status:** This document is maintained as an implementation specification.
-> The running code on `main` wins if they differ. This is not a roadmap or the
-> authoritative user documentation. See the
+> **Status:** This document describes the current implementation. The running
+> code on `main` wins if it differs. See the
 > [documentation contract](../README.md) and [user manual](../manual/index.md).
 
-## **1. File Discovery Engine**
+## 1. File discovery
 
-### **Purpose**
+Adapt recursively scans the document root. It ignores hidden paths, `.adapt`,
+virtual environments, `__pycache__`, and `node_modules`. Discovery selects a
+plugin from `AdaptConfig.plugin_registry` by file extension. It does not call
+`Plugin.detect()`.
 
-Scan the document root and identify all resources to expose.
+The default registry contains these mappings:
 
-### **Responsibilities**
+| Extensions | Plugin |
+| --- | --- |
+| `.csv` | CSV |
+| `.xlsx`, `.xls` | Excel |
+| `.parquet` | Parquet |
+| `.py` | Python handler |
+| `.html` | HTML |
+| `.md` | Markdown |
+| `.txt`, `.pdf`, `.json`, `.xml`, `.svg` | Generic file |
+| `.png`, `.jpg`, `.jpeg`, `.gif`, `.webp` | Generic file |
+| `.mp4`, `.mp3`, `.avi`, `.mkv`, `.webm`, `.ogg`, `.wav` | Media |
 
-* Recursively walk the root directory
-* Identify supported file types
-* Associate companion files (schema, HTML UI, write overrides)
-* Detect Python handler files
-* Produce a list of resources to load via plugins
+The Excel plugin rejects `.xls`, so this registered format is not readable.
+Discovery ignores extensions that are not in the registry.
 
-### **Supported File Types**
+## 2. Dataset engine
 
-| Extension  | Handler               |
-| ---------- | --------------------- |
-| `.csv`     | CSV Plugin            |
-| `.xlsx`    | Excel Plugin          |
-| `.html`    | HTML Plugin           |
-| `.md`      | Markdown Plugin       |
-| `.parquet` | Parquet Plugin        |
-| `.py`      | Python Handler Plugin |
-| `.txt`     | Generic File Plugin   |
-| `.pdf`     | Generic File Plugin   |
-| `.json`    | Generic File Plugin   |
-| `.xml`     | Generic File Plugin   |
-| `.svg`     | Generic File Plugin   |
-| `.png`     | Generic File Plugin   |
-| `.jpg`     | Generic File Plugin   |
-| `.jpeg`    | Generic File Plugin   |
-| `.gif`     | Generic File Plugin   |
-| `.webp`    | Generic File Plugin   |
-| `.mp4`     | Media Plugin          |
-| `.mp3`     | Media Plugin          |
-| `.avi`     | Media Plugin          |
-| `.mkv`     | Media Plugin          |
-| `.webm`    | Media Plugin          |
-| `.ogg`     | Media Plugin          |
-| `.wav`     | Media Plugin          |
+The dataset engine handles CSV files, XLSX sheets, and Parquet files. It
+provides row reads, query controls, and mutation envelopes for create, update,
+and delete actions. Row identifiers are one-based positions named `_row_id`.
 
-The default registry maps `.xls` to the Excel plugin. However, the plugin only
-accepts `.xlsx`, so `.xls` is not readable. The discovery engine ignores
-unregistered extensions.
+Schema inference uses `string`, `integer`, `number`, and `boolean` labels for
+CSV and Excel samples. These labels control response conversion and UI columns.
+They do not validate mutation data.
 
-## **2. Dataset Engine**
+Each XLSX sheet has a `sub_namespace`. For example, the `People` sheet in
+`staff.xlsx` has these extensionless routes:
 
-Handles structured datasets (CSV, Excel sheets, Parquet-like).
+* `/api/staff/People/`
+* `/schema/staff/People/`
+* `/ui/staff/People/`
 
-### **Responsibilities**
+The extension-qualified `staff.xlsx/People` namespace is also mounted. A
+sheet uses these companion paths:
 
-* Schema inference
-* Row-level CRUD
-* Inline editing via PATCH
-* Duplicate row ID management
-* Write-through with locking
-* Companion file generation
+* `.adapt/staff.People.schema.json`
+* `.adapt/staff.People.index.html`
+* `.adapt/staff.People.options.json`
 
-### **Supported Types**
+The `header_row` option selects the one-based header row for CSV and Excel
+resources. An absent or invalid value uses row 1.
 
-string, integer, number, boolean
+## 3. Schema and companion files
 
-These inferred labels affect response serialization and default UI columns.
-They do not validate mutation payloads.
+Dataset plugins derive column metadata from the file. During discovery, Adapt
+creates a missing schema file and DataTables UI file. Adapt reads an options
+file but does not create it.
 
-### **Excel Behavior**
+Generated schema files contain a `generated_by` marker. Adapt can refresh a
+marked schema after the derived shape changes. Adapt preserves a hand-maintained
+schema without this marker when its content differs from the derived schema.
 
-Each sheet becomes a resource via the "sub_namespace" mechanism:
-
-* `/api/file/<sheet>` — CRUD API for each sheet
-* `/ui/file/<sheet>` — HTML UI for each sheet
-* `/schema/file/<sheet>` — Schema for each sheet
-
-Each sheet uses these companion filenames:
-
-* `.adapt/file.<sheet>.schema.json`
-* `.adapt/file.<sheet>.index.html`
-* `.adapt/file.<sheet>.options.json`
-
-Adapt generates the schema and UI files. The options file is hand-maintained.
-
----
-
-## **3. Schema Engine**
-
-### **Responsibilities**
-
-* Infer schema from CSV/XLSX
-* Merge schema overrides
-* Generate default schema files
-* Supply serialization hints and UI column metadata
-
-Neither inferred nor hand-maintained schemas are write validators.
-
----
-
-## **4. Safe Writes (Locking + Atomic Write System)**
-
-### **Current Behavior**
-
-* One writer at a time (enforced via database unique constraint)
-* One lock record per resource
-* Built-in dataset writes use a temporary file and atomic target replacement
-  where the platform supports it
-* Locks recorded and visible in Admin UI
-* Lock expiration with TTL (5 minutes default)
-* Retry with timeout (30 seconds) and exponential backoff (0.1s initial, doubling, 1.0s max)
-
-These behaviors reduce race and partial-write risk; they do not eliminate all
-races or make a writer uninterruptible. When retries are exhausted, the
-current timeout is not translated reliably into an HTTP `409` and may surface
-as a server error.
-
-### **Implementation Details**
-
-**Optimistic Locking Pattern:**
-1. Try to insert lock record directly
-2. Database enforces uniqueness via constraint
-3. On IntegrityError, check if existing lock is expired
-4. Delete stale lock and retry
-5. Retry a held lock with exponential backoff until the context timeout
-
-**Automatic Recovery:**
-* Server startup cleans locks older than 5 minutes
-* Ensures recovery from crashes without manual intervention
-* Background monitoring via Admin UI
-
----
-
-## **5. Cache Engine**
-
-### **Features**
-
-* Plugin-specific caching of parsed dataset rows, schemas, rendered/read HTML
-  and Markdown, and extracted media metadata
-* Resource-scoped invalidation by plugins after supported writes
-* Cache visibility and clearing via Admin UI
-
-Generic file bodies and streamed media bodies are not cached. There is no
-automatic cache wrapper for every GET response.
-
----
-
-## **6. Companion File Specification**
-
-Adapt treats your filesystem as a structured backend environment. Companion files (schemas, UIs, overrides) are stored in a hidden `.adapt` directory to keep the docroot clean.
-
-### **Generation**
-
-During startup, Adapt generates missing dataset schema and UI files in the
-`.adapt/` directory. Adapt reads options files but does not generate them.
-
-### **Generated Files**
-
-| Type                                       | Default Content                                    | Description |
-| ------------------------------------------ | -------------------------------------------------- | ----------- |
-| Schema (`.adapt/*.schema.json`)            | JSON schema inferred from dataset                  | JSON schema for dataset |
-| HTML UI (`.adapt/*.index.html`)            | Jinja2 template with pre-computed schema           | Customizable HTML UI template |
-| Sheet UI (`.adapt/*.<sheet>.index.html`)   | Default sheet-level UI                             | Customizable HTML UI template |
-
-The media plugin is an exception to the UI content type. It writes JSON
-metadata to its assigned `ui_path` instead of an HTML template.
-
-### **Example generated schema**
+Neither a generated schema nor a hand-maintained schema validates writes.
 
 ```json
 {
   "type": "object",
+  "name": "people",
   "primary_key": "_row_id",
-* Handles structured datasets (CSV, Excel sheets, Parquet). Parquet support is now robust and consistent with other dataset plugins, including atomic writes and schema inference.
+  "columns": {
     "name": {"type": "string"},
     "age": {"type": "integer"}
   }
 }
 ```
+
+Dataset UI files use the `*.index.html` suffix. The media plugin is different.
+It writes JSON metadata to its assigned `ui_path`.
+
+## 4. Writes and locks
+
+The lock manager stores one unique lock record for each resource. Built-in
+dataset writes retry a held lock for up to 30 seconds. The retry delay starts
+at 0.1 seconds, doubles, and stops at 1 second.
+
+Locks expire after five minutes by default. Startup deletes locks older than
+five minutes. The Admin UI can list, delete, and clean lock records.
+
+CSV, Excel, and Parquet writes use a temporary file. They replace the target
+with `os.replace()` where supported. An `EXDEV` error uses a copy fallback.
+These measures reduce conflict and partial-write risk. They do not remove all
+races or make a writer uninterruptible.
+
+The shared write method converts `RuntimeError` lock conflicts to `409`.
+However, an exhausted retry raises `TimeoutError`. This error can surface as a
+server error instead of `409`.
+
+## 5. Cache
+
+`adapt/cache.py` stores plugin cache entries in the SQLite `cache` table. The
+table contains `key`, `value`, `expires_at`, `resource`, and `user` columns.
+
+Plugins cache selected values. These values include parsed dataset rows,
+schemas, rendered HTML or Markdown, and media metadata. Supported writes
+invalidate resource cache entries.
+
+Generic file bodies and streamed media bodies are not cached. Adapt does not
+apply one automatic cache wrapper to every `GET` response.

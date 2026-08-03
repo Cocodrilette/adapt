@@ -1,32 +1,31 @@
-# **Adapt Specification: Plugin System**
+# Adapt Specification: Plugin System
 
-> **Status:** This document is maintained as an implementation specification.
-> The running code on `main` wins if they differ. This is not a roadmap or the
-> authoritative user documentation. See the
+> **Status:** This document describes the current implementation. The running
+> code on `main` wins if it differs. See the
 > [documentation contract](../README.md) and [user manual](../manual/index.md).
 
-## **1. Plugin System Overview**
+## 1. Plugin selection
 
-A plugin is a module implementing the `Plugin` interface. Adapt maintains a `plugin_registry` that maps file extensions to plugin classes.
+`AdaptConfig.plugin_registry` maps file extensions to plugin classes. Discovery
+uses this mapping to select a class. The `detect()` method remains part of the
+interface, but discovery does not call it.
 
-### **Plugin Types**
+The built-in plugin categories are:
 
-* **Dataset Plugins** (CSV, Excel, Parquet): Provide full CRUD APIs, schemas, and DataTables UIs. Parquet support is now robust and consistent with other dataset plugins, including atomic writes and schema inference.
-* **Handler Plugins** (Python): Custom FastAPI routers for business logic
-* **Content Plugins** (HTML, Markdown): Serve rendered content at extensionless URLs
-* **Generic File Plugin** (TXT, PDF, JSON, XML, SVG, and common image formats): Serve registered files directly
-* **Media Plugins** (MP4, MP3, AVI, MKV, WebM, OGG, WAV): Provide streaming endpoints and gallery UIs for audio/video files
+* Dataset plugins for CSV, Excel, and Parquet
+* A Python handler plugin for custom FastAPI routers
+* HTML and Markdown content plugins
+* A generic file plugin for registered document and image types
+* A media plugin for audio and video files
 
-The generic file extensions are `.txt`, `.pdf`, `.json`, `.xml`, `.svg`,
-`.png`, `.jpg`, `.jpeg`, `.gif`, and `.webp`. An extension must have a registry
-mapping before discovery can select its plugin.
+The default generic file extensions are `.txt`, `.pdf`, `.json`, `.xml`,
+`.svg`, `.png`, `.jpg`, `.jpeg`, `.gif`, and `.webp`. The default media
+extensions are `.mp4`, `.mp3`, `.avi`, `.mkv`, `.webm`, `.ogg`, and `.wav`.
 
-The default registry includes `.xls`, but the Excel plugin only accepts
-`.xlsx`. Therefore, legacy `.xls` files are not currently readable.
+The registry maps `.xls` to the Excel plugin. The plugin accepts only `.xlsx`,
+so `.xls` files are not readable.
 
----
-
-## **2. Plugin Interface**
+## 2. Interface
 
 ```python
 class Plugin:
@@ -46,54 +45,33 @@ class Plugin:
 `ResourceDescriptor` contains `path`, `resource_type`, `schema_path`,
 `ui_path`, `options_path`, and `metadata`.
 
----
+## 3. Method behavior
 
-## **3. Methods Detail**
+`load()` returns one descriptor or a sequence of descriptors. The Excel plugin
+returns one descriptor for each sheet.
 
-### **`detect(self, path)`**
-*   **Purpose**: Determine whether the plugin owns the file.
-*   **Returns**: `True` or `False`.
-*   **Current use**: The method is part of the interface, but discovery does not call it. The registry extension selects the plugin class.
+`schema()` returns schema metadata when the resource has a schema. `read()`
+returns the value needed by the plugin route. `write()` handles supported
+mutations. Content, generic file, media, and Python plugins reject writes.
 
-### **`load(self, path)`**
-*   **Purpose**: Create one or more **Resource Objects** containing metadata.
-*   **Returns**: `ResourceDescriptor` or `Sequence[ResourceDescriptor]`.
-*   **Notes**: The `ResourceDescriptor` contains normalized path, metadata, companion file refs, and plugin state.
+`apply_options()` receives parsed companion options after `load()`. Discovery
+calls it before companion generation. The base method makes no changes.
 
-### **`schema(self, resource)`**
-*   **Purpose**: Return the JSON schema for this resource.
-*   **Behavior**: Use companion schema if present, otherwise infer. Must never mutate the underlying data file.
+`get_route_configs()` returns `(prefix, router)` pairs. Adapt mounts each pair
+under extensionless and extension-qualified namespaces. For example,
+`records.csv` uses `records` and `records.csv`. The `Sheet1` resource in
+`records.xlsx` uses `records/Sheet1` and `records.xlsx/Sheet1`.
 
-### **`read(self, resource, request)`**
-*   **Purpose**: Return resource data for `GET` operations.
-*   **Returns**: JSON-serializable response.
+`index()` supplies documents to the shared full-text search index. The base
+method returns no documents.
 
-### **`write(self, resource, data, request, context)`**
-*   **Purpose**: Handle `POST`, `PATCH`, and `DELETE` operations.
-*   **Behavior**: Apply row modifications, write to a temporary file, and
-    replace the target atomically where supported. The shared dataset write
-    path does not validate values against the resource schema. CSV, Excel,
-    and Parquet use this atomic-write helper together with per-resource locks
-    to reduce concurrent-editing risk.
-
-### **`get_route_configs(self, descriptor)`**
-*   **Purpose**: Register **all endpoints** generated by the plugin (API, Schema, UI).
-*   **Returns**: List of `(prefix, APIRouter)` tuples.
-
-Adapt mounts each pair under extensionless and extension-qualified namespaces.
-For example, `records.csv` uses `records` and `records.csv`. The `Sheet1`
-resource in `records.xlsx` uses `records/Sheet1` and
-`records.xlsx/Sheet1`.
-
-### **Optional extension points**
-
-* `apply_options()` applies values from the companion options file.
-* `index()` supplies documents to the full-text search index.
-* `filter_for_user()` filters dataset rows for a read request.
-* `default_ui()` returns a default HTML UI.
-* `generate_companion_files()` writes plugin companion files.
+`filter_for_user()` is a read extension point for dataset rows. The base method
+returns all rows. Built-in plugins do not override it. The shared write path
+does not safely enforce write-level row security.
 
 Dataset plugins use `ui_path` for `*.index.html` templates. The media plugin
-writes JSON metadata to `ui_path` instead of an HTML template. Hand-maintained
-schema files supply serialization and UI metadata, but they do not validate
-writes.
+uses `ui_path` for JSON metadata. Schema files affect serialization and UI
+metadata, but they do not validate writes.
+
+CSV, Excel, and Parquet mutations use the shared dataset write method and a
+resource lock. Each plugin writes through the shared atomic-write helper.

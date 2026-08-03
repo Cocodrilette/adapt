@@ -7,23 +7,26 @@
 
 ## **1. Overview**
 
-Adapt is an adaptive, local-first backend server built on FastAPI. It automatically exposes files and Python modules as REST endpoints and interactive HTML UIs.
+Adapt is a local-first FastAPI server. It exposes registered files and Python
+routers through HTTP routes.
 
 Place files into a directory, and Adapt generates:
 
-* REST CRUD APIs
-* HTML DataTables interfaces with sorting, searching, pagination, and a common navigation bar
-* Inline editing (PATCH); inferred schemas describe serialization and UI
-  columns but do not validate mutations
+* REST CRUD APIs and DataTables UIs for CSV, XLSX, and Parquet datasets
+* Direct routes for registered content, generic files, and media
+* Inline editing through `PATCH`
+* Inferred schemas that control serialization and UI columns, but do not
+  validate mutations
 * Serialized writes using one lock record per resource, retry with exponential
   backoff, and atomic target replacement where supported
-* Automatic schema generation and override scaffolding
-* Auto-registered FastAPI routers from Python files
+* Generated schema and UI companion files for datasets
+* FastAPI routers loaded from registered Python files
 * Users, groups, and RBAC
-* Admin UI for managing users, groups, permissions, locks, and cache
-* SQLite-backed caching system for GET responses, plugin-driven and resource-aware
+* Admin UI for users, groups, permissions, API keys, audit logs, locks, and cache
+* A plugin-specific SQLite cache for selected derived values
 
-Adapt treats your filesystem as a structured backend environment. Companion files (schemas, UIs, overrides) are stored in a hidden `.adapt` directory to keep the docroot clean.
+Adapt stores dataset companion files and its SQLite database in the hidden
+`.adapt` directory under the document root.
 
 ---
 
@@ -31,17 +34,17 @@ Adapt treats your filesystem as a structured backend environment. Companion file
 
 ### **Goals**
 
-* Provide instant backends for file-based assets
-* Deliver high-quality UIs without build tools
-* Support rapid custom logic with Python handler files
+* Provide HTTP access to registered file types
+* Provide browser UIs without a separate build step
+* Load custom FastAPI routes from Python handler files
 * Apply resource permissions and reduce write-conflict risk with locking
-* Follow local-first, privacy-centric principles
+* Keep resource files and application storage under local control
 * Enable extensibility via plugins
 
 ### **Non-Goals**
 
-* Not a replacement for relational DBs
-* Not intended for high-throughput, real-time apps
+* Adapt is not a relational database.
+* Adapt is not intended for high-throughput, real-time applications.
 
 ---
 
@@ -62,9 +65,8 @@ Adapt includes the following major subsystems:
 The items below are proposed work, not promises of current behavior. A proposal
 can extend a partial implementation that already exists.
 
-* Live reload (watch filesystem)
+* Make the accepted `--reload` option activate Uvicorn file watching.
 * GraphQL views
 * Complete the partially implemented common navigation bar
 * Self-signed certificate generation on startup (unless a key/cert pair is provided)
-* Self-issue API keys (non-admins can create their own API keys [just for themselves])
 * Plugin marketplace
