@@ -15,21 +15,26 @@ Options include:
 * `--port`
 * `--tls-cert`
 * `--tls-key`
-* `--read-only`
-* `--admin`
-* `--log-level`
+* `--reload`
+* `--readonly`
+* `--debug`
+
+The CLI accepts `--reload`, but the command passes an application object to
+Uvicorn. Uvicorn does not activate file watching in this mode. Restart the
+server after a source change.
 
 ### **Operational Commands**
 
-* `adapt check <root>` — initialize `.adapt.db`, migrate schemas, and list discovered datasets.
-* `adapt addsuperuser <root> --username <name>` — create or warn if a superuser already exists in the configured SQLite store.
-* `adapt list-endpoints <root>` — print every `/api/*`, `/schema/*`, and `/ui/*` path registered during discovery.
+* `adapt check <root>`: load the configuration and create or use `.adapt/adapt.db`. Initialize storage, discover resources, and print their count. Emit TLS and top-level route-collision warnings. Do not migrate resource schemas or list each resource.
+* `adapt addsuperuser <root> --username <name>`: create a superuser or report that the user exists. Optional non-interactive flags are `--password`, `--password-confirm`, and `--allow-weak-password`.
+* `adapt list-endpoints <root>`: print best-effort paths from discovered resource descriptors. The output can omit sub-resources, including Excel sheets. It is not the effective application route table.
+* `adapt reindex <root> [--force]`: rebuild the full-text search index. `--force` also indexes resources whose file metadata is unchanged.
 
 ### **Administrative Commands**
 
-* `adapt admin list-resources <root>` — list all discovered resources in the document root, including sub-namespaces for multi-resource files (e.g., Excel sheets).
-* `adapt admin create-permissions <root> <resources>...` — create permissions and groups for specified resources (use `__all__` for all resources, including sub-namespaces). Supports `--all-group` and `--read-group` options to customize group naming.
-* `adapt admin list-groups <root>` — display all groups with their associated permissions and assigned users.
+* `adapt admin list-resources <root>`: list all discovered resources in the document root, including sub-namespaces for multi-resource files (e.g., Excel sheets).
+* `adapt admin create-permissions <root> <resources>...`: create permissions and groups for specified resources. Use `__all__` for all resources, including sub-namespaces. The `--all-group` and `--read-group` values are prefixes. The command adds a sorted resource-name suffix to each combined group name.
+* `adapt admin list-groups <root>`: display all groups with their associated permissions and assigned users.
 
 ---
 
@@ -85,7 +90,7 @@ Invalid `conf.json` causes the server to exit with an error.
 
 ---
 
-## **3. Logging and Metrics**
+## **3. Logging**
 
 ### **Logging**
 
@@ -93,7 +98,3 @@ Invalid `conf.json` causes the server to exit with an error.
 * Write operations
 * Lock events
 * Admin actions
-
-### **Metrics**
-
-Optional Prometheus-like metrics at `/metrics`.

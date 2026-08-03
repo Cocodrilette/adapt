@@ -189,6 +189,9 @@ adapt admin list-resources <root>
 adapt admin create-permissions <root> __all__
 ```
 
+The `--reload` option is accepted, but it does not currently activate Uvicorn
+file watching. Restart the server after a source change.
+
 ## Documentation
 
 Detailed docs live under `docs/manual/`.

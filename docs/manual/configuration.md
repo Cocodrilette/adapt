@@ -135,6 +135,8 @@ Boolean value or port stops configuration loading.
 TLS note:
 
 - `--tls-cert` and `--tls-key` must be provided together.
+- `--reload` is accepted, but it does not currently activate Uvicorn file
+  watching. Restart the server after a source change.
 - `adapt serve` sets `secure_cookies` to `true` only when it uses both TLS
   files. It sets the value to `false` without direct TLS. This serve-time value
   overrides `conf.json`.
@@ -177,10 +179,15 @@ adapt check /path/to/docroot
 
 Typical checks:
 
-- config parse and key validation
-- DB initialization
-- resource discovery
-- TLS path sanity warnings
+- configuration loading and key validation
+- creation or reuse of `.adapt/adapt.db`
+- storage initialization
+- resource discovery and a resource count
+- TLS file warnings
+- top-level route-collision warnings
+
+The command does not migrate resource schemas or list each discovered
+resource.
 
 ## Common Configuration Issues
 

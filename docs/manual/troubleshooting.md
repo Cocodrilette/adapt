@@ -181,7 +181,19 @@ python -c "from module.path import ClassName"
 adapt check .
 adapt list-endpoints .
 adapt admin list-resources .
+adapt reindex .
 ```
+
+`adapt check` initializes storage and reports a discovered-resource count. It
+also reports TLS file problems and top-level route collisions. It does not
+migrate resource schemas or list each resource.
+
+`adapt list-endpoints` is a best-effort diagnostic. It can omit sub-resources,
+including Excel sheets. Compare its output with the effective application
+routes when complete route coverage is required.
+
+`adapt reindex` rebuilds the full-text search index. Add `--force` to index
+resources whose file metadata is unchanged.
 
 ## When to Collect Logs
 

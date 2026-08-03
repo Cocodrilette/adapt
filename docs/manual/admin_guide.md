@@ -27,8 +27,8 @@ adapt admin create-permissions /path/to/docroot __all__ \
   --read-group read_resources
 ```
 
-- `--all-group` — prefix for the combined group that receives all (read + write) permissions (default: `all_resources`)
-- `--read-group` — prefix for the combined group that receives read-only permissions (default: `read_resources`)
+- `--all-group`: prefix for the combined group that receives all read and write permissions (default: `all_resources`)
+- `--read-group`: prefix for the combined group that receives read-only permissions (default: `read_resources`)
 
 The selected resource names are sorted, joined with underscores, and added
 as a suffix. For example, selecting `products inventory` creates combined
@@ -136,6 +136,14 @@ Useful checks:
 adapt check /path/to/docroot
 adapt list-endpoints /path/to/docroot
 ```
+
+`adapt check` loads the configuration, initializes storage, and counts
+discovered resources. It also reports TLS and top-level route-collision
+warnings.
+
+`adapt list-endpoints` is a best-effort diagnostic. It can omit sub-resources,
+including Excel sheets, and does not show the effective application route
+table.
 
 Admin API examples:
 

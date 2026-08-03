@@ -35,7 +35,7 @@ when you compare behavior with this documentation.
 mkdir my-adapt-server
 cd my-adapt-server
 # Add some files here, e.g. data.csv, readme.md, etc.
-adapt addsuperuser --username admin .
+adapt addsuperuser . --username admin
 adapt serve .
 ```
 
@@ -48,6 +48,7 @@ adapt serve <directory> [options]
 adapt check <directory>
 adapt addsuperuser <directory> --username <username>
 adapt list-endpoints <directory>
+adapt reindex <directory> [--force]
 ```
 
 ## Admin CLI Commands
@@ -75,7 +76,7 @@ Options:
   --port INTEGER     Port to bind to
   --tls-cert PATH    Path to TLS certificate file
   --tls-key PATH     Path to TLS private key file
-  --reload           Enable auto-reload for development
+  --reload           Accepted, but file watching is not currently activated
   --readonly         Start server in read-only mode
   --debug            Enable debug logging
 ```
@@ -84,9 +85,34 @@ Notes:
 
 - `--tls-cert` and `--tls-key` must be provided together.
 - `--readonly` blocks write operations.
+- `--reload` is accepted, but it does not currently activate Uvicorn file
+  watching. Restart the server after a source change.
 - `adapt serve` sets `secure_cookies` from its direct TLS configuration. It
   sets the value to `true` only when both TLS files are configured. This
   overrides the value in `conf.json`.
+
+## Other Core Command Options
+
+Create a superuser with an interactive password prompt:
+
+```bash
+adapt addsuperuser <directory> --username <username>
+```
+
+For non-interactive use, provide `--password` and `--password-confirm`.
+The `--allow-weak-password` flag bypasses the weak-password safety prompt.
+
+Rebuild the full-text search index:
+
+```bash
+adapt reindex <directory> [--force]
+```
+
+The `--force` flag indexes resources even if their file metadata is unchanged.
+
+`adapt list-endpoints <directory>` is a best-effort diagnostic. It reports
+paths from discovered resource descriptors, not the effective application
+route table. Its output can omit sub-resources, including Excel sheets.
 
 ## Configuration File
 
@@ -151,5 +177,10 @@ your-data-directory/
 ```bash
 adapt check .
 ```
+
+This command creates or uses `.adapt/adapt.db` and initializes its storage.
+It loads the configuration, discovers resources, and prints the resource
+count. It also reports TLS file problems and top-level route collisions.
+It does not migrate resource schemas or print each discovered resource.
 
 [Previous](overview) | [Next](quick_start) | [Index](index)
