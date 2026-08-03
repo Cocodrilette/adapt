@@ -1,7 +1,5 @@
 # Admin Guide
 
-[Previous](api_reference) | [Next](security) | [Index](index)
-
 This guide covers administration workflows that are currently implemented in Adapt.
 
 ## Initial Setup
@@ -160,4 +158,4 @@ curl -H "X-API-Key: <superuser-key>" http://localhost:8000/admin/locks
 - Rotate and revoke API keys routinely.
 - Use TLS and secure cookies for non-local deployments.
 
-[Previous](api_reference) | [Next](security) | [Index](index)
+Manual navigation: [Previous: API Reference](api_reference.md) | [Index](index.md) | [Next: Security](security.md)

@@ -1,7 +1,5 @@
 # Plugin Development
 
-[Previous](configuration) | [Next](architecture) | [Index](index)
-
 This guide describes the plugin APIs that are currently implemented in Adapt.
 
 ## Core Plugin Interfaces
@@ -251,4 +249,4 @@ When creating plugins, test:
 - Prefer additive schema changes when possible.
 - Document any plugin-specific configuration keys clearly.
 
-[Previous](configuration) | [Next](architecture) | [Index](index)
+Manual navigation: [Previous: Configuration](configuration.md) | [Index](index.md) | [Next: Architecture](architecture.md)

@@ -1,7 +1,5 @@
 # User Guide
 
-[Previous](quick_start) | [Next](api_reference) | [Index](index)
-
 This guide explains day-to-day use of Adapt through its web UI and APIs.
 
 ## Landing Page
@@ -153,4 +151,4 @@ open the generated UI or schema route for that resource.
 - Rotate/revoke API keys when no longer needed
 - Use read-only mode for browse-only environments
 
-[Previous](quick_start) | [Next](api_reference) | [Index](index)
+Manual navigation: [Previous: Quick Start](quick_start.md) | [Index](index.md) | [Next: API Reference](api_reference.md)

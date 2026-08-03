@@ -1,7 +1,5 @@
 # Quick Start Guide
 
-[Previous](installation) | [Next](user_guide) | [Index](index)
-
 This guide gets an Adapt server running with realistic examples.
 
 ## Step 1: Install Adapt
@@ -162,7 +160,7 @@ adapt admin list-users .
 For each resource, the command creates `<resource>_readonly` and
 `<resource>_readwrite` groups. Add non-superusers to the appropriate group.
 The combined groups also include a suffix made from the selected resource
-names; see the [Admin Guide](admin_guide).
+names; see the [Admin Guide](admin_guide.md).
 
 ## Step 10: Optional Serve Flags
 
@@ -186,8 +184,8 @@ adapt serve . --readonly
 
 ## Next Steps
 
-- Continue to the [User Guide](user_guide)
-- Review complete routes in the [API Reference](api_reference)
-- Use the [Admin Guide](admin_guide) for user/group management
+- Continue to the [User Guide](user_guide.md)
+- Review complete routes in the [API Reference](api_reference.md)
+- Use the [Admin Guide](admin_guide.md) for user and group management
 
-[Previous](installation) | [Next](user_guide) | [Index](index)
+Manual navigation: [Previous: Installation](installation.md) | [Index](index.md) | [Next: User Guide](user_guide.md)

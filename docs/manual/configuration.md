@@ -1,7 +1,5 @@
 # Configuration
 
-[Previous](mcp_guide) | [Next](plugin_development) | [Index](index)
-
 This guide documents configuration behavior currently implemented in Adapt.
 
 ## Configuration File
@@ -146,7 +144,7 @@ TLS note:
 `mcp_enabled` (default `true`) controls whether the MCP server is mounted at
 `/mcp`. Set it to `false` in `conf.json` or via `ADAPT_MCP_ENABLED=false` to
 remove the route entirely — useful for deployments that only want the REST
-API surface. See the [MCP Guide](mcp_guide) for setup.
+API surface. See the [MCP Guide](mcp_guide.md) for setup.
 
 ## Plugin Registry Notes
 
@@ -197,4 +195,4 @@ resource.
 4. Invalid plugin class path
 5. TLS cert/key only partially set
 
-[Previous](mcp_guide) | [Next](plugin_development) | [Index](index)
+Manual navigation: [Previous: MCP Guide](mcp_guide.md) | [Index](index.md) | [Next: Plugin Development](plugin_development.md)

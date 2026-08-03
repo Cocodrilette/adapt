@@ -1,7 +1,5 @@
 # Installation
 
-[Previous](overview) | [Next](quick_start) | [Index](index)
-
 ## System Requirements
 
 - Python 3.11 or higher
@@ -183,4 +181,4 @@ It loads the configuration, discovers resources, and prints the resource
 count. It also reports TLS file problems and top-level route collisions.
 It does not migrate resource schemas or print each discovered resource.
 
-[Previous](overview) | [Next](quick_start) | [Index](index)
+Manual navigation: [Previous: Overview](overview.md) | [Index](index.md) | [Next: Quick Start](quick_start.md)

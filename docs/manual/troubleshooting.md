@@ -1,7 +1,5 @@
 # Troubleshooting
 
-[Previous](architecture) | [Index](index)
-
 This guide covers common problems and verified troubleshooting steps for the current Adapt implementation.
 
 ## Server Startup Problems
@@ -204,4 +202,4 @@ Capture logs when reporting issues:
 - request path and response code
 - relevant config from `.adapt/conf.json`
 
-[Previous](architecture) | [Index](index)
+Manual navigation: [Previous: Architecture](architecture.md) | [Index](index.md)

@@ -1,7 +1,5 @@
 # Security
 
-[Previous](admin_guide) | [Next](mcp_guide) | [Index](index)
-
 This guide documents security behavior currently implemented in Adapt.
 
 ## Authentication
@@ -34,7 +32,7 @@ Current limitation: authentication does not check the associated user's
 otherwise valid session or API key from authenticating; revoke sessions and
 keys or delete the user when access must be removed.
 
-The MCP interface (`/mcp/`, see the [MCP Guide](mcp_guide)) uses the same
+The MCP interface (`/mcp/`, see the [MCP Guide](mcp_guide.md)) uses the same
 authentication resolver as HTTP routes, so tool calls accept either a
 session cookie or an API key. API keys are the supported and recommended MCP
 client mechanism. Authentication is enforced when a tool executes, not
@@ -179,4 +177,4 @@ curl http://localhost:8000/health
 - Keep superuser accounts limited and monitored.
 - Review audit logs regularly.
 
-[Previous](admin_guide) | [Next](mcp_guide) | [Index](index)
+Manual navigation: [Previous: Admin Guide](admin_guide.md) | [Index](index.md) | [Next: MCP Guide](mcp_guide.md)

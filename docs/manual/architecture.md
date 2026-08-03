@@ -1,7 +1,5 @@
 # Architecture
 
-[Previous](plugin_development) | [Next](troubleshooting) | [Index](index)
-
 This document describes the current Adapt architecture.
 
 ## High-Level Design
@@ -151,4 +149,4 @@ Current implementation is optimized for single-instance docroot-local operation.
 
 Multi-instance, shared DB/cache, and websocket-style real-time update architectures are future design topics, not current built-in behavior.
 
-[Previous](plugin_development) | [Next](troubleshooting) | [Index](index)
+Manual navigation: [Previous: Plugin Development](plugin_development.md) | [Index](index.md) | [Next: Troubleshooting](troubleshooting.md)

@@ -1,7 +1,5 @@
 # API Reference
 
-[Previous](user_guide) | [Next](admin_guide) | [Index](index)
-
 This document describes the API surface that is currently implemented by Adapt.
 
 ## Authentication
@@ -210,7 +208,7 @@ adapt reindex /path/to/docroot [--force]
 
 Adapt mounts a [Model Context Protocol](https://modelcontextprotocol.io)
 server at `/mcp/`, exposing the same permission-filtered read/write/search
-functionality as tools for agentic clients. See the [MCP Guide](mcp_guide)
+functionality as tools for agentic clients. See the [MCP Guide](mcp_guide.md)
 for a full walkthrough from account creation to connecting a client.
 
 | Tool | Equivalent to |
@@ -350,4 +348,4 @@ Validation failures can use a list of structured objects under `detail`.
 After lock acquisition retries are exhausted, the current implementation can
 surface a server error instead of the intended `409` response.
 
-[Previous](user_guide) | [Next](admin_guide) | [Index](index)
+Manual navigation: [Previous: User Guide](user_guide.md) | [Index](index.md) | [Next: Admin Guide](admin_guide.md)

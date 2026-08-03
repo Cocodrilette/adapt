@@ -1,7 +1,5 @@
 # MCP Interface Guide
 
-[Previous](security) | [Next](configuration) | [Index](index)
-
 This guide walks through everything needed to let an agentic tool (Claude
 Code, Claude Desktop, or any other [MCP](https://modelcontextprotocol.io)
 client) talk to an Adapt server: creating an account, granting it
@@ -28,7 +26,7 @@ HTTP POST requests.
 ## Prerequisites
 
 - Adapt installed (`pip install adapt-server`) and a docroot with at least
-  one resource (see the [Quick Start](quick_start)).
+  one resource (see the [Quick Start](quick_start.md)).
 - An MCP-capable client. This guide shows examples for the Claude Code CLI
   and a generic JSON config that works with most desktop MCP clients.
 
@@ -126,7 +124,7 @@ block similar to this — check your client's docs for the exact key names:
 ```
 
 Use `https://` and a certificate the client trusts once you're off
-`localhost` — see [Security](security) for TLS setup.
+`localhost` — see [Security](security.md) for TLS setup.
 
 ## Step 7: What the Agent Can Do
 
@@ -169,6 +167,6 @@ To read `products` sorted by category ascending, pass MCP tool arguments like:
   disabled entirely regardless of permissions.
 - **No `/mcp/` route at all** — the server has `mcp_enabled: false` in
   `.adapt/conf.json` or `ADAPT_MCP_ENABLED=false` set. See
-  [Configuration](configuration).
+  [Configuration](configuration.md).
 
-[Previous](security) | [Next](configuration) | [Index](index)
+Manual navigation: [Previous: Security](security.md) | [Index](index.md) | [Next: Configuration](configuration.md)
