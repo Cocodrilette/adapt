@@ -26,6 +26,7 @@ pip install -e .
 The source checkout can contain changes that are newer than the published
 `adapt-server` release on PyPI. Identify which source or package version you use
 when you compare behavior with this documentation.
+See [Known Limitations](known_limitations.md#package-versions).
 
 ## First Run
 
@@ -89,6 +90,9 @@ Notes:
   sets the value to `true` only when both TLS files are configured. This
   overrides the value in `conf.json`.
 
+See [Known Limitations](known_limitations.md#reload-mode) for the current
+reload behavior.
+
 ## Other Core Command Options
 
 Create a superuser with an interactive password prompt:
@@ -111,6 +115,7 @@ The `--force` flag indexes resources even if their file metadata is unchanged.
 `adapt list-endpoints <directory>` is a best-effort diagnostic. It reports
 paths from discovered resource descriptors, not the effective application
 route table. Its output can omit sub-resources, including Excel sheets.
+See [Known Limitations](known_limitations.md#endpoint-listing).
 
 ## Configuration File
 

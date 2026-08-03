@@ -142,6 +142,7 @@ warnings.
 `adapt list-endpoints` is a best-effort diagnostic. It can omit sub-resources,
 including Excel sheets, and does not show the effective application route
 table.
+See [Known Limitations](known_limitations.md#endpoint-listing).
 
 Admin API examples:
 

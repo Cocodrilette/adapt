@@ -100,6 +100,7 @@ Supported built-in extensions are:
 `.xls` is present in the default plugin registry, but it is not currently
 readable. Convert legacy Excel files to `.xlsx`. Unregistered extensions are
 not discovered or served unless you add a plugin mapping for them.
+See [Known Limitations](known_limitations.md#legacy-excel-files).
 
 ### Companion Files Missing
 
@@ -126,6 +127,7 @@ adapt serve . --readonly
 Some runtime write conflicts return `409`. Retry after a short delay. If lock
 acquisition reaches its retry timeout, the current implementation can return
 `500` instead of `409`; inspect `/admin/locks` and the server log.
+See [Known Limitations](known_limitations.md#exhausted-lock-conflicts).
 
 ### Write Payload Rejected
 
@@ -189,6 +191,7 @@ migrate resource schemas or list each resource.
 `adapt list-endpoints` is a best-effort diagnostic. It can omit sub-resources,
 including Excel sheets. Compare its output with the effective application
 routes when complete route coverage is required.
+See [Known Limitations](known_limitations.md#endpoint-listing).
 
 `adapt reindex` rebuilds the full-text search index. Add `--force` to index
 resources whose file metadata is unchanged.
@@ -202,4 +205,4 @@ Capture logs when reporting issues:
 - request path and response code
 - relevant config from `.adapt/conf.json`
 
-Manual navigation: [Previous: Architecture](architecture.md) | [Index](index.md)
+Manual navigation: [Previous: Architecture](architecture.md) | [Index](index.md) | [Next: Known Limitations](known_limitations.md)

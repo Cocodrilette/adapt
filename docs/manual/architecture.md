@@ -136,6 +136,7 @@ Locking uses DB records with per-resource uniqueness and expiration.
 The lock timeout currently escapes as a server error instead of reliably
 becoming a `409`. Locking and atomic replacement reduce risk but do not promise
 that writes are race-free or cannot be interrupted.
+See [Known Limitations](known_limitations.md#exhausted-lock-conflicts).
 
 ## Observability
 

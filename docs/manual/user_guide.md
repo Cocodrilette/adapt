@@ -102,6 +102,9 @@ curl -X DELETE -H "X-API-Key: your-key" \
 curl -H "X-API-Key: your-key" http://localhost:8000/schema/products/
 ```
 
+Schemas do not validate dataset writes. See
+[Known Limitations](known_limitations.md#schema-validation).
+
 ## Permissions and Access Control
 
 Adapt uses users, groups, and resource permissions.
@@ -137,6 +140,8 @@ open the generated UI or schema route for that resource.
 
 - Some runtime write conflicts return `409`; retry after a short delay.
 - An exhausted lock retry currently can return `500` instead of `409`.
+
+See [Known Limitations](known_limitations.md#exhausted-lock-conflicts).
 
 ### Data Not Detected
 

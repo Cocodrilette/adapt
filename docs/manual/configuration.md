@@ -139,6 +139,9 @@ TLS note:
   files. It sets the value to `false` without direct TLS. This serve-time value
   overrides `conf.json`.
 
+See [Known Limitations](known_limitations.md#reload-mode) for the current
+reload behavior.
+
 ## MCP Interface
 
 `mcp_enabled` (default `true`) controls whether the MCP server is mounted at
@@ -151,6 +154,7 @@ API surface. See the [MCP Guide](mcp_guide.md) for setup.
 The default registry shown above matches `AdaptConfig.plugin_registry`.
 However, `.xls` files are not currently readable because the Excel plugin only
 accepts `.xlsx`. Unregistered extensions are not discovered or served.
+See [Known Limitations](known_limitations.md#legacy-excel-files).
 
 The generic `FilePlugin` serves these registered types directly:
 

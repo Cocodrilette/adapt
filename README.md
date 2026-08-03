@@ -191,6 +191,7 @@ adapt admin create-permissions <root> __all__
 
 The `--reload` option is accepted, but it does not currently activate Uvicorn
 file watching. Restart the server after a source change.
+See [Known Limitations](docs/manual/known_limitations.md#reload-mode).
 
 ## Documentation
 
@@ -203,6 +204,7 @@ Detailed docs live under `docs/manual/`.
 - API reference: [docs/manual/api_reference.md](docs/manual/api_reference.md)
 - MCP guide: [docs/manual/mcp_guide.md](docs/manual/mcp_guide.md)
 - Plugin development: [docs/manual/plugin_development.md](docs/manual/plugin_development.md)
+- Known limitations: [docs/manual/known_limitations.md](docs/manual/known_limitations.md)
 
 ## License
 

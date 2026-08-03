@@ -113,6 +113,7 @@ provide safe write-level row-security enforcement: it reads and rewrites the
 row collection, and row identifiers can diverge after filtering. A plugin
 that needs row-level write authorization must implement and test its own
 write path rather than relying on this hook.
+See [Known Limitations](known_limitations.md#write-level-row-security).
 
 ## Example Skeleton
 

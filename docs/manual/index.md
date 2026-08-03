@@ -16,6 +16,7 @@ Welcome to the comprehensive manual for Adapt, the adaptive file-backed web serv
 10. [Plugin Development](plugin_development.md) - Creating custom plugins
 11. [Architecture](architecture.md) - Internal architecture and design
 12. [Troubleshooting](troubleshooting.md) - Common issues and solutions
+13. [Known Limitations](known_limitations.md) - Current implementation limits and workarounds
 
 ## About This Manual
 

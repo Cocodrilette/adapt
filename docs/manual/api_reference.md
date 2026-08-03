@@ -115,6 +115,9 @@ Notes:
   Unknown or incompatible values can therefore be written to the backing file.
 - In read-only mode, mutation endpoints return `405`.
 
+See [Known Limitations](known_limitations.md#schema-validation) for the effect
+of this validation limit.
+
 ## Schema Endpoint
 
 **GET** `/schema/{resource}/`
@@ -347,5 +350,6 @@ most application errors use a `detail` member, for example:
 Validation failures can use a list of structured objects under `detail`.
 After lock acquisition retries are exhausted, the current implementation can
 surface a server error instead of the intended `409` response.
+See [Known Limitations](known_limitations.md#exhausted-lock-conflicts).
 
 Manual navigation: [Previous: User Guide](user_guide.md) | [Index](index.md) | [Next: Admin Guide](admin_guide.md)

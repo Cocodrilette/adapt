@@ -31,6 +31,7 @@ Current limitation: authentication does not check the associated user's
 `is_active` flag. Marking a user inactive does not currently prevent an
 otherwise valid session or API key from authenticating; revoke sessions and
 keys or delete the user when access must be removed.
+See [Known Limitations](known_limitations.md#inactive-users).
 
 The MCP interface (`/mcp/`, see the [MCP Guide](mcp_guide.md)) uses the same
 authentication resolver as HTTP routes, so tool calls accept either a
@@ -129,6 +130,7 @@ These mechanisms reduce concurrency and partial-write risks; they do not make
 writes uninterruptible or eliminate every race. A lock acquisition that still
 fails after the retry timeout can currently surface as a server error rather
 than a `409` response.
+See [Known Limitations](known_limitations.md#exhausted-lock-conflicts).
 
 ## Row-Level Filtering
 
@@ -137,6 +139,7 @@ built-in plugins do not apply per-user row filters. More importantly, dataset
 writes read and rewrite row collections in a way that does not safely enforce
 write-level row security. Plugins must not treat this hook as authorization
 for row-level mutations.
+See [Known Limitations](known_limitations.md#write-level-row-security).
 
 ## Audit and Admin Security Endpoints
 

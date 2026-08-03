@@ -78,6 +78,7 @@ graph TB
 The default registry contains `.xls`, but the Excel plugin does not read this
 format. Convert legacy Excel files to `.xlsx`. Adapt does not discover an
 unregistered extension unless you add a plugin mapping for it.
+See [Known Limitations](known_limitations.md#legacy-excel-files).
 
 ## Core Principles
 
