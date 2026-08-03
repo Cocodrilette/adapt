@@ -1,5 +1,10 @@
 # **Adapt Specification: Plugin System**
 
+> **Status:** This document is maintained as an implementation specification.
+> The running code on `main` wins if they differ. This is not a roadmap or the
+> authoritative user documentation. See the
+> [documentation contract](../README.md) and [user manual](../manual/index.md).
+
 ## **1. Plugin System Overview**
 
 A plugin is a module implementing the `Plugin` interface. Adapt maintains a `plugin_registry` that maps file extensions to plugin classes.

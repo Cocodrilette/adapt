@@ -19,4 +19,12 @@ Welcome to the comprehensive manual for Adapt, the adaptive file-backed web serv
 
 ## About This Manual
 
-This manual is generated from the project's README.md, specification documents in `docs/spec/`, and implementation notes from the blog posts. It attempts to provide a complete reference for all aspects of Adapt.
+This manual is Adapt's authoritative user documentation. It describes the
+behavior of the running implementation on `main`, which is the source of truth.
+The documents in [`../spec/`](../spec/README.md) are implementation
+specifications, not a roadmap or a promise of future behavior.
+
+Unimplemented ideas are labeled **Future work**. Known implementation defects
+are documented as limitations instead of being described as working behavior.
+See the [documentation contract](../README.md) for the maintenance rules and
+scope.

@@ -1,5 +1,10 @@
 # **Adapt Specification: Authentication & Security**
 
+> **Status:** This document is maintained as an implementation specification.
+> The running code on `main` wins if they differ. This is not a roadmap or the
+> authoritative user documentation. See the
+> [documentation contract](../README.md) and [user manual](../manual/index.md).
+
 ## **1. Authentication and Authorization System**
 
 ### **Purpose**

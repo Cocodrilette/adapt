@@ -1,5 +1,10 @@
 # **Adapt Specification: Overview**
 
+> **Status:** This document is maintained as an implementation specification.
+> The running code on `main` wins if they differ. This is not a roadmap or the
+> authoritative user documentation. See the
+> [documentation contract](../README.md) and [user manual](../manual/index.md).
+
 ## **1. Overview**
 
 Adapt is an adaptive, local-first backend server built on FastAPI. It automatically exposes files and Python modules as REST endpoints and interactive HTML UIs.
@@ -50,11 +55,14 @@ Adapt includes the following major subsystems:
 
 ---
 
-## **4. Roadmap**
+## **4. Future work**
+
+The items below are proposed work, not promises of current behavior. A proposal
+can extend a partial implementation that already exists.
 
 * Live reload (watch filesystem)
 * GraphQL views
-* Common navigation bar (partially implemented)
+* Complete the partially implemented common navigation bar
 * Self-signed certificate generation on startup (unless a key/cert pair is provided)
 * Self-issue API keys (non-admins can create their own API keys [just for themselves])
 * Plugin marketplace
