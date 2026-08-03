@@ -11,6 +11,12 @@ Adapt supports two authentication methods:
 1. Session cookie (`adapt_session`) from web login
 2. API key using `X-API-Key: <key>`
 
+Generated resource routes require authentication. Non-superusers must also
+have the corresponding `read` or `write` permission. For command-line
+mutations, prefer an API key because an API-key-only request is CSRF-exempt.
+Cookie-authenticated unsafe requests must send the `adapt_csrf` cookie value
+in the `X-CSRF-Token` header (or in the `csrf_token` form field).
+
 Authentication endpoints:
 
 - `GET /auth/login` - Login page (HTML)
@@ -33,18 +39,18 @@ Default local URL: `http://localhost:8000`
 
 For dataset resources (CSV, Excel sheets, Parquet), Adapt generates routes under:
 
-- `/api/{resource}`
-- `/schema/{resource}`
-- `/ui/{resource}`
+- `/api/{resource}/`
+- `/schema/{resource}/`
+- `/ui/{resource}/`
 
 Examples:
 
-- CSV `products.csv` -> `/api/products`
-- Excel `inventory.xlsx` sheet `Stock` -> `/api/inventory/Stock`
+- CSV `products.csv` -> `/api/products/`
+- Excel `inventory.xlsx` sheet `Stock` -> `/api/inventory/Stock/`
 
 ### List Records
 
-**GET** `/api/{resource}`
+**GET** `/api/{resource}/`
 
 Query parameters:
 
@@ -57,14 +63,14 @@ Query parameters:
 Example:
 
 ```bash
-curl -H "X-API-Key: key" "http://localhost:8000/api/products?limit=10&sort=name&order=asc"
+curl -H "X-API-Key: key" "http://localhost:8000/api/products/?limit=10&sort=name&order=asc"
 ```
 
 ### Mutations (Create, Update, Delete)
 
 Adapt uses action-based mutation payloads at the collection endpoint.
 
-**POST** `/api/{resource}`
+**POST** `/api/{resource}/`
 
 ```json
 {
@@ -80,7 +86,7 @@ Adapt uses action-based mutation payloads at the collection endpoint.
 }
 ```
 
-**PATCH** `/api/{resource}`
+**PATCH** `/api/{resource}/`
 
 ```json
 {
@@ -92,7 +98,7 @@ Adapt uses action-based mutation payloads at the collection endpoint.
 }
 ```
 
-**DELETE** `/api/{resource}`
+**DELETE** `/api/{resource}/`
 
 ```json
 {
@@ -110,14 +116,14 @@ Notes:
 
 ## Schema Endpoint
 
-**GET** `/schema/{resource}`
+**GET** `/schema/{resource}/`
 
 Returns the inferred or companion schema.
 
 Example:
 
 ```bash
-curl http://localhost:8000/schema/products
+curl -H "X-API-Key: key" http://localhost:8000/schema/products/
 ```
 
 ## Content Endpoints
@@ -195,21 +201,24 @@ adapt reindex /path/to/docroot [--force]
 ## MCP Interface
 
 Adapt mounts a [Model Context Protocol](https://modelcontextprotocol.io)
-server at `/mcp`, exposing the same permission-filtered read/write/search
+server at `/mcp/`, exposing the same permission-filtered read/write/search
 functionality as tools for agentic clients. See the [MCP Guide](mcp_guide)
 for a full walkthrough from account creation to connecting a client.
 
 | Tool | Equivalent to |
 |---|---|
 | `list_resources` | `GET /` (JSON) |
-| `get_schema` | `GET /schema/{resource}` |
-| `read_resource` | `GET /api/{resource}` |
-| `write_resource` | `POST`/`PATCH`/`DELETE /api/{resource}` |
+| `get_schema` | `GET /schema/{resource}/` |
+| `read_resource` | `GET /api/{resource}/` |
+| `write_resource` | `POST`/`PATCH`/`DELETE /api/{resource}/` |
 | `search` | `GET /search` |
 
-Every tool requires an `X-API-Key` header — MCP has no session-cookie or
-anonymous path. Set `mcp_enabled: false` in `.adapt/conf.json` (or
-`ADAPT_MCP_ENABLED=false`) to remove `/mcp` entirely.
+Authentication is enforced when a tool executes, not while the client
+initializes or discovers tools. MCP uses Adapt's shared authentication
+resolver, which accepts either a session cookie or an API key. API keys are
+the supported and recommended mechanism for MCP clients. Set
+`mcp_enabled: false` in `.adapt/conf.json` (or `ADAPT_MCP_ENABLED=false`) to
+remove `/mcp/` entirely.
 
 ## Admin Endpoints
 
@@ -303,7 +312,7 @@ Supported filter operators include:
 Example:
 
 ```bash
-curl "http://localhost:8000/api/products?filter={\"price\":{\"$gte\":100},\"category\":\"Electronics\"}"
+curl -H "X-API-Key: key" "http://localhost:8000/api/products/?filter={\"price\":{\"$gte\":100},\"category\":\"Electronics\"}"
 ```
 
 ## Common Error Codes

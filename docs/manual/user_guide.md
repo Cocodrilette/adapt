@@ -19,12 +19,12 @@ For unauthenticated users:
 
 For dataset resources (CSV, Excel sheets, Parquet), Adapt provides DataTables-based UIs at:
 
-- `/ui/<resource>`
+- `/ui/<resource>/`
 
 Examples:
 
-- `/ui/products`
-- `/ui/inventory/Stock`
+- `/ui/products/`
+- `/ui/inventory/Stock/`
 
 Typical capabilities include:
 
@@ -62,19 +62,21 @@ For API calls, use either:
 ### Dataset Read
 
 ```bash
-curl -H "X-API-Key: your-key" http://localhost:8000/api/products
+curl -H "X-API-Key: your-key" http://localhost:8000/api/products/
 ```
 
 ### Dataset Write Contract
 
-Dataset writes are action-based and target `/api/<resource>`.
+Dataset writes are action-based and target `/api/<resource>/`. API keys are
+recommended for command-line writes because API-key-only requests are exempt
+from CSRF validation.
 
 Create:
 
 ```bash
 curl -X POST -H "X-API-Key: your-key" \
   -H "Content-Type: application/json" \
-  http://localhost:8000/api/products \
+  http://localhost:8000/api/products/ \
   -d '{"action":"create","data":[{"name":"New Product","price":29.99}]}'
 ```
 
@@ -83,7 +85,7 @@ Update:
 ```bash
 curl -X PATCH -H "X-API-Key: your-key" \
   -H "Content-Type: application/json" \
-  http://localhost:8000/api/products \
+  http://localhost:8000/api/products/ \
   -d '{"action":"update","data":{"_row_id":1,"price":39.99}}'
 ```
 
@@ -92,14 +94,14 @@ Delete:
 ```bash
 curl -X DELETE -H "X-API-Key: your-key" \
   -H "Content-Type: application/json" \
-  http://localhost:8000/api/products \
+  http://localhost:8000/api/products/ \
   -d '{"action":"delete","data":{"_row_id":1}}'
 ```
 
 ### Schema Endpoint
 
 ```bash
-curl http://localhost:8000/schema/products
+curl -H "X-API-Key: your-key" http://localhost:8000/schema/products/
 ```
 
 ## Permissions and Access Control
@@ -109,6 +111,10 @@ Adapt uses users, groups, and resource permissions.
 - `read` permissions control read access.
 - `write` permissions control mutation access.
 - Superusers bypass normal permission checks.
+
+Generated API, schema, and UI routes all require authentication and the
+appropriate permission. A non-superuser without `read` permission cannot
+open the generated UI or schema route for that resource.
 
 ## Caching and Locks
 

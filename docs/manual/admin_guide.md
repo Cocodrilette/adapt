@@ -18,7 +18,8 @@ Create permissions and groups for resources:
 adapt admin create-permissions /path/to/docroot __all__
 ```
 
-Optional flags control the names of the automatically-created permission groups:
+Optional flags control the prefixes of the automatically-created combined
+permission groups:
 
 ```bash
 adapt admin create-permissions /path/to/docroot __all__ \
@@ -26,8 +27,15 @@ adapt admin create-permissions /path/to/docroot __all__ \
   --read-group read_resources
 ```
 
-- `--all-group` — name for the group that receives all (read + write) permissions (default: `all_resources`)
-- `--read-group` — name for the group that receives read-only permissions (default: `read_resources`)
+- `--all-group` — prefix for the combined group that receives all (read + write) permissions (default: `all_resources`)
+- `--read-group` — prefix for the combined group that receives read-only permissions (default: `read_resources`)
+
+The selected resource names are sorted, joined with underscores, and added
+as a suffix. For example, selecting `products inventory` creates combined
+groups named `all_resources_inventory_products` and
+`read_resources_inventory_products`. The command also creates the individual
+groups `products_readonly`, `products_readwrite`, `inventory_readonly`, and
+`inventory_readwrite`.
 
 Or target specific resources:
 

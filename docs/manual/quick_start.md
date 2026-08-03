@@ -62,7 +62,19 @@ def summary():
     }
 ```
 
-## Step 4: Start the Server
+## Step 4: Create a Superuser
+
+Generated resource routes require authentication and the corresponding
+resource permission. Create a superuser before starting the server; a
+superuser bypasses the normal resource permission checks.
+
+```bash
+adapt addsuperuser . --username admin
+```
+
+The command prompts for a password.
+
+## Step 5: Start the Server
 
 ```bash
 adapt serve .
@@ -70,29 +82,46 @@ adapt serve .
 
 Open `http://localhost:8000`.
 
-## Step 5: Explore Generated Routes
+## Step 6: Sign In and Create an API Key
+
+Open `http://localhost:8000/auth/login` and sign in as `admin`. Then open
+`http://localhost:8000/profile` and create an API key. Copy the key when it
+is shown; Adapt does not display the raw value again.
+
+The browser UI uses your authenticated session. The command-line examples
+below use the superuser API key and are therefore exempt from CSRF checks.
+
+```bash
+export ADAPT_API_KEY='<superuser-api-key>'
+```
+
+## Step 7: Explore Generated Routes
 
 Try these endpoints in a browser first:
 
-- `/ui/products`
-- `/schema/products`
+- `/ui/products/`
+- `/schema/products/`
 - `/readme`
 - `/api/reports/summary` (if you created `reports.py`)
 
-## Step 6: Use the Dataset API
+Your browser session must be authenticated to open the generated resource
+routes. A non-superuser also needs the resource's `read` permission.
 
-Dataset mutations are action-based and target `/api/{resource}`.
+## Step 8: Use the Dataset API
+
+Dataset mutations are action-based and target `/api/{resource}/`.
 
 Get rows:
 
 ```bash
-curl http://localhost:8000/api/products
+curl -H "X-API-Key: $ADAPT_API_KEY" http://localhost:8000/api/products/
 ```
 
 Create a row:
 
 ```bash
-curl -X POST http://localhost:8000/api/products \
+curl -X POST http://localhost:8000/api/products/ \
+  -H "X-API-Key: $ADAPT_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"action":"create","data":[{"name":"Keyboard","price":49.99,"category":"Electronics","in_stock":true}]}'
 ```
@@ -100,7 +129,8 @@ curl -X POST http://localhost:8000/api/products \
 Update a row by `_row_id`:
 
 ```bash
-curl -X PATCH http://localhost:8000/api/products \
+curl -X PATCH http://localhost:8000/api/products/ \
+  -H "X-API-Key: $ADAPT_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"action":"update","data":{"_row_id":1,"price":899.99}}'
 ```
@@ -108,20 +138,15 @@ curl -X PATCH http://localhost:8000/api/products \
 Delete a row by `_row_id`:
 
 ```bash
-curl -X DELETE http://localhost:8000/api/products \
+curl -X DELETE http://localhost:8000/api/products/ \
+  -H "X-API-Key: $ADAPT_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"action":"delete","data":{"_row_id":1}}'
 ```
 
-## Step 7: Optional Security Setup
+## Step 9: Optional Non-Superuser Permissions
 
-Create a superuser:
-
-```bash
-adapt addsuperuser . --username admin
-```
-
-Create permissions for discovered resources:
+Create permissions and groups for discovered resources:
 
 ```bash
 adapt admin create-permissions . __all__
@@ -134,7 +159,12 @@ adapt admin list-groups .
 adapt admin list-users .
 ```
 
-## Step 8: Optional Serve Flags
+For each resource, the command creates `<resource>_readonly` and
+`<resource>_readwrite` groups. Add non-superusers to the appropriate group.
+The combined groups also include a suffix made from the selected resource
+names; see the [Admin Guide](admin_guide).
+
+## Step 10: Optional Serve Flags
 
 ```bash
 adapt serve . --host 127.0.0.1 --port 8000 --debug
@@ -148,9 +178,9 @@ adapt serve . --readonly
 
 ## What You Have Running
 
-- Generated dataset API at `/api/products`
-- Generated schema at `/schema/products`
-- Generated UI at `/ui/products`
+- Generated dataset API at `/api/products/`
+- Generated schema at `/schema/products/`
+- Generated UI at `/ui/products/`
 - Markdown route at `/readme`
 - Optional Python handler route(s) under `/api/reports/*`
 

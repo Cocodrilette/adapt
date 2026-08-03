@@ -29,9 +29,12 @@ API key behavior:
 - Keys can be inactive or expired
 - `last_used_at` is updated on successful key usage
 
-The MCP interface (`/mcp`, see the [MCP Guide](mcp_guide)) only accepts
-`X-API-Key` — there is no session-cookie or anonymous path for MCP tool
-calls, since MCP has no concept of a browser session.
+The MCP interface (`/mcp/`, see the [MCP Guide](mcp_guide)) uses the same
+authentication resolver as HTTP routes, so tool calls accept either a
+session cookie or an API key. API keys are the supported and recommended MCP
+client mechanism. Authentication is enforced when a tool executes, not
+during initialization or tool discovery. Cookie-authenticated MCP requests
+are still subject to CSRF validation because the transport uses HTTP POST.
 
 ## Authorization
 
@@ -62,6 +65,26 @@ Key points:
 - Form field fallback: `csrf_token`
 - API-key-only requests without session cookies are exempt
 - If both session and API key are present, CSRF still applies
+
+For example, log in and store the session and CSRF cookies in a curl cookie
+jar. Then copy the CSRF cookie into the header for an unsafe request:
+
+```bash
+curl -c /tmp/adapt-cookies.txt -X POST \
+  --data-urlencode "username=admin" \
+  --data-urlencode "password=<password>" \
+  http://localhost:8000/auth/login
+
+CSRF_TOKEN=$(awk '$6 == "adapt_csrf" {print $7}' /tmp/adapt-cookies.txt)
+curl -b /tmp/adapt-cookies.txt -X POST \
+  -H "X-CSRF-Token: $CSRF_TOKEN" \
+  -H "Content-Type: application/json" \
+  http://localhost:8000/api/products/ \
+  -d '{"action":"create","data":[{"name":"Keyboard"}]}'
+```
+
+For command-line mutations, an API-key-only request is simpler and does not
+require CSRF handling.
 
 ## Security Headers
 

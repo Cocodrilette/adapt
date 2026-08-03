@@ -68,6 +68,18 @@ adapt admin list-groups .
 adapt admin list-resources .
 ```
 
+Generated API, schema, and UI routes require authentication plus the
+corresponding resource permission. `create-permissions` creates individual
+groups named `<resource>_readonly` and `<resource>_readwrite`; combined group
+names include a suffix made from all selected resources.
+
+### Cookie-Authenticated Mutation Returns `403`
+
+Unsafe requests made with an `adapt_session` cookie must also send the
+`adapt_csrf` cookie value in the `X-CSRF-Token` header. This remains true if
+the request also includes an API key. For command-line mutations, use an API
+key without a session cookie to avoid CSRF handling.
+
 ## Resource Discovery Problems
 
 ### Files Not Appearing
@@ -76,12 +88,18 @@ adapt admin list-resources .
 - Confirm file is under docroot
 - Restart server after adding files
 
-Supported built-in extensions include:
+Supported built-in extensions are:
 
-- `.csv`, `.xlsx`, `.xls`, `.parquet`
-- `.html`, `.txt`, `.md`
-- `.py`
-- `.mp4`, `.mp3`, `.avi`, `.mkv`, `.webm`, `.ogg`, `.wav`
+- Datasets: `.csv`, `.xlsx`, `.parquet`
+- Rendered content: `.html`, `.md`
+- Python handlers: `.py`
+- Generic files: `.txt`, `.pdf`, `.json`, `.xml`, `.svg`, `.png`, `.jpg`,
+  `.jpeg`, `.gif`, `.webp`
+- Streamed media: `.mp4`, `.mp3`, `.avi`, `.mkv`, `.webm`, `.ogg`, `.wav`
+
+`.xls` is present in the default plugin registry, but it is not currently
+readable. Convert legacy Excel files to `.xlsx`. Unregistered extensions are
+not discovered or served unless you add a plugin mapping for them.
 
 ### Companion Files Missing
 
@@ -109,7 +127,7 @@ A lock conflict occurred. Retry after a short delay.
 
 ### Write Payload Rejected
 
-Dataset mutations require action envelope payloads on `/api/<resource>`.
+Dataset mutations require action envelope payloads on `/api/<resource>/`.
 
 Example:
 
