@@ -109,10 +109,10 @@ adapt reindex <directory> [--force]
 
 The `--force` flag indexes resources even if their file metadata is unchanged.
 
-`adapt list-endpoints <directory>` is a best-effort diagnostic. It reports
-paths from discovered resource descriptors, not the effective application
-route table. Its output can omit sub-resources, including Excel sheets.
-See [Known Limitations](known_limitations.md#endpoint-listing).
+`adapt list-endpoints <directory>` builds the configured plugin routers and
+prints the resource paths they actually mount. The output includes
+sub-resources such as Excel sheets and both extensionless and with-extension
+resource namespaces. Files that do not mount routes are not listed.
 
 ## Configuration File
 

@@ -1,16 +1,19 @@
 from pathlib import Path
 import logging
 
+from fastapi import FastAPI
+
 from .. import cache
 from ..config import AdaptConfig
 from ..discovery import discover_resources
+from ..routes import build_resource_registry, generate_routes, iter_effective_routes
 from ..storage import init_database
 
 logger = logging.getLogger(__name__)
 
 
 def run_list_endpoints(root: Path) -> None:
-    """List all discovered API endpoints.
+    """List the resource endpoints that Adapt actually generates.
 
     Args:
         root: The root directory path for the Adapt configuration.
@@ -31,12 +34,22 @@ def run_list_endpoints(root: Path) -> None:
         print("No resources discovered.")
         return
 
-    logger.debug("Listing endpoints for %d resources", len(resources))
-    for resource in resources:
-        namespace = resource.relative_path.with_suffix("").as_posix()
-        if resource.resource_type not in ("html", "markdown", "file"):
-            print(f"/api/{namespace}")
-            print(f"/ui/{namespace}")
-            print(f"/schema/{namespace}")
-        else:
-            print(f"/{namespace}")
+    # Build the same registry and mount the same plugin routers as create_app().
+    # Inferring routes from resource types drifts from plugin behavior: it misses
+    # sub-resources and reports routes that a plugin never mounted.
+    app = FastAPI()
+    registry = build_resource_registry(resources, config)
+    generate_routes(app, registry)
+    paths = {
+        path.rstrip("/") or "/"
+        for path, _route in iter_effective_routes(app.routes)
+    }
+
+    logger.debug(
+        "Listing %d generated endpoints for %d resources", len(paths), len(resources)
+    )
+    if not paths:
+        print("No endpoints generated.")
+        return
+    for path in sorted(paths):
+        print(path)

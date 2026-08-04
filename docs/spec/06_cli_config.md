@@ -23,9 +23,9 @@ Operational commands include:
   top-level route-collision warnings.
 * `adapt addsuperuser <root> --username <name>` creates a superuser or reports
   an existing user. It supports noninteractive password options.
-* `adapt list-endpoints <root>` prints best-effort paths from resource
-  descriptors. It can omit subresources, including Excel sheets. It is not the
-  effective application route table.
+* `adapt list-endpoints <root>` builds the configured plugin routers and prints
+  the resource paths they mount. It includes plugin-defined subresources and
+  both supported namespace forms. It omits files that mount no routes.
 * `adapt reindex <root> [--force]` rebuilds the full-text search index. The
   option also indexes resources whose file metadata is unchanged.
 

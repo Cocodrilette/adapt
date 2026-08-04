@@ -14,17 +14,6 @@ Legacy `.xls` sheets are read-only. A `POST`, `PATCH`, or `DELETE` request
 returns `405`. Convert the workbook to `.xlsx` before you modify it through
 Adapt. This restriction prevents formula and workbook-feature loss.
 
-## Server and CLI
-
-### Endpoint Listing
-
-`adapt list-endpoints` reports paths from discovered resource descriptors. It
-can omit sub-resources such as Excel sheets. It does not show the effective
-application route table.
-
-Use this command as a best-effort diagnostic. When you need complete route
-coverage, inspect the application route table.
-
 ## Plugin Interface
 
 ### Plugin Detection

@@ -189,10 +189,9 @@ adapt reindex .
 also reports TLS file problems and top-level route collisions. It does not
 migrate resource schemas or list each resource.
 
-`adapt list-endpoints` is a best-effort diagnostic. It can omit sub-resources,
-including Excel sheets. Compare its output with the effective application
-routes when complete route coverage is required.
-See [Known Limitations](known_limitations.md#endpoint-listing).
+`adapt list-endpoints` builds the configured plugin routers and prints their
+mounted resource paths. It includes sub-resources such as Excel sheets and
+does not invent API, schema, or UI paths for files that mount no routes.
 
 `adapt reindex` rebuilds the full-text search index. Add `--force` to index
 resources whose file metadata is unchanged.

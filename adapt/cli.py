@@ -43,7 +43,7 @@ def main() -> None:
         help="Allow a weak password without the safety confirmation prompt",
     )
 
-    list_parser = subparsers.add_parser("list-endpoints", help="List the auto-generated REST/UI endpoints")
+    list_parser = subparsers.add_parser("list-endpoints", help="List generated resource endpoints")
     list_parser.add_argument("root", nargs="?", default=".", help="Document root to inspect")
 
     reindex_parser = subparsers.add_parser("reindex", help="Rebuild the full-text search index")

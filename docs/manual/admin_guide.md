@@ -142,10 +142,9 @@ adapt list-endpoints /path/to/docroot
 discovered resources. It also reports TLS and top-level route-collision
 warnings.
 
-`adapt list-endpoints` is a best-effort diagnostic. It can omit sub-resources,
-including Excel sheets, and does not show the effective application route
-table.
-See [Known Limitations](known_limitations.md#endpoint-listing).
+`adapt list-endpoints` builds the configured plugin routers and prints their
+mounted resource paths. It includes sub-resources such as Excel sheets and
+omits discovered files whose plugins do not mount a route.
 
 Admin API examples:
 
