@@ -84,7 +84,7 @@ This reflects the current implementation in the codebase.
 - **Response hardening:** CSP, `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, HSTS (when TLS is enabled)
 - **Host header hardening:** Trusted Host middleware
 - **Data integrity:** lock-based, atomic writes for mutable dataset plugins
-- **Auditability:** admin/audit logging for security-relevant actions
+- **Auditability:** audit records for authentication, administration, and successful dataset mutations
 - **Sensitive response cleanup:** admin user APIs no longer expose `password_hash`
 
 ### Important Deployment Notes

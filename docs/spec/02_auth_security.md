@@ -22,8 +22,8 @@ The role-based access control system has six main components:
 4. **Enforcement layer** - Generated resource routes require authentication
    and a matching resource permission.
 5. **API key system** - The `X-API-Key` header supports programmatic access.
-6. **Audit system** - Implemented authentication and administrative actions
-   create selected audit records.
+6. **Audit system** - Authentication, administrative actions, and successful
+   dataset mutations create audit records.
 
 ### **Database Schema**
 
@@ -38,7 +38,7 @@ The role-based access control system has six main components:
 | `grouppermission` | Group and permission links | Composite primary key. Foreign keys reference `groups.id` and `permission.id`. |
 | `dbsession` | Browser sessions | Unique `token`. `user_id` references `users.id`. |
 | `apikey` | Hashed API keys | Unique `key_hash`. `user_id` references `users.id`. |
-| `auditlog` | Selected audit events | Nullable `user_id` and nullable `resource` |
+| `auditlog` | Audit events | Nullable `user_id` and nullable `resource` |
 | `lock_records` | Resource write locks | Unique indexed `resource` |
 
 The `Action` enum limits permission actions to `read` and `write`.
@@ -126,8 +126,8 @@ is denied.
   `secrets.compare_digest`.
 - **Secure by Default:** No permission = no access
 - **Superuser Bypass:** Emergency access for administrators
-- **Audit Logging:** Selected auth and administrative changes are recorded.
-  Dataset writes are not currently audited.
+- **Audit Logging:** Authentication, administrative changes, and successful
+  dataset mutations are recorded.
 - **Row-Level Filtering:** Plugins can filter rows during reads. Built-in
   plugins do not do so, and the hook does not safely enforce write-level RLS.
 - **Inactive-user enforcement:** Login, session, and API-key authentication
@@ -176,5 +176,11 @@ They also cover these administrative changes:
 * Permission creation, deletion, and group assignment changes
 * Manual lock operations
 * Cache entry deletion and cache clearing
+* Successful dataset creation, update, and deletion operations
 
-Dataset mutations and other unlisted writes do not create audit records.
+Dataset mutations use `create_dataset_rows`, `update_dataset_row`, and
+`delete_dataset_row` actions. REST and MCP writes use the same audit path.
+The resource identifies the dataset path and optional sheet namespace. The
+details identify the row count or row ID without copying dataset values.
+
+Other unlisted writes do not create audit records.

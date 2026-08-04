@@ -96,11 +96,12 @@ def permission_dependency(action_param: str, resource: str):
         with Session(request.app.state.db_engine) as db:
             try:
                 if not check_permission(user, db, action, resource):
-                     logger.warning("Permission denied for user %s: %s on %s", user.username, action, resource)
-                     raise HTTPException(
+                    logger.warning("Permission denied for user %s: %s on %s", user.username, action, resource)
+                    raise HTTPException(
                         status_code=status.HTTP_403_FORBIDDEN, 
                         detail=f"Permission denied: {action} on {resource}"
                     )
+                request.state.user = user
                 db.commit()  # Commit if successful
                 logger.debug("Permission granted for user %s: %s on %s", user.username, action, resource)
                 return user

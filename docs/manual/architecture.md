@@ -139,6 +139,7 @@ still stop before completion.
 
 - Python logging configured via `conf.json` `logging` section
 - audit logs available via `/admin/audit-logs`
+- successful REST and MCP dataset mutations create audit records
 - health endpoint at `/health`
 
 ## Deployment Notes

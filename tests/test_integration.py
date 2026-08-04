@@ -4,12 +4,13 @@ from pathlib import Path
 from adapt.config import AdaptConfig
 from adapt.app import create_app
 from adapt.storage import init_database
+from adapt.api_keys import create_api_key_record
 from adapt.locks import LockManager, LockTimeoutError
-from adapt.storage import Group, GroupPermission, Permission, User, UserGroup
+from adapt.storage import AuditLog, Group, GroupPermission, Permission, User, UserGroup
 from adapt.auth.password import hash_password
 from adapt.auth.session import create_session, SESSION_COOKIE
 from adapt.security import CSRF_COOKIE_NAME, generate_csrf_token
-from sqlmodel import Session
+from sqlmodel import Session, select
 
 
 
@@ -278,6 +279,66 @@ def test_api_delete(superuser_client):
     response = superuser_client.get("/api/data")
     data = response.json()
     assert len(data) == 1 # Alice
+
+
+@pytest.mark.parametrize(
+    ("method", "action", "data", "audit_action", "details"),
+    [
+        (
+            "POST",
+            "create",
+            [{"name": "Charlie", "age": 35}],
+            "create_dataset_rows",
+            "Created 1 dataset row",
+        ),
+        (
+            "PATCH",
+            "update",
+            {"_row_id": 1, "age": 31},
+            "update_dataset_row",
+            "Updated dataset row 1",
+        ),
+        (
+            "DELETE",
+            "delete",
+            {"_row_id": 2},
+            "delete_dataset_row",
+            "Deleted dataset row 2",
+        ),
+    ],
+)
+def test_dataset_mutations_create_audit_entries(
+    app, method, action, data, audit_action, details
+):
+    with Session(app.state.db_engine) as db:
+        user = User(
+            username=f"{action}_auditor",
+            password_hash=hash_password("password"),
+            is_superuser=True,
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+        user_id = user.id
+        raw_key, _ = create_api_key_record(db, user_id, "audit test", None)
+
+    response = TestClient(app).request(
+        method,
+        "/api/data",
+        headers={"X-API-Key": raw_key},
+        json={"action": action, "data": data},
+    )
+
+    assert response.status_code == 200
+    with Session(app.state.db_engine) as db:
+        entries = db.exec(
+            select(AuditLog).where(AuditLog.action == audit_action)
+        ).all()
+
+    assert len(entries) == 1
+    assert entries[0].user_id == user_id
+    assert entries[0].resource == "data.csv"
+    assert entries[0].details == details
 
 
 def test_root_landing_page_html(superuser_client):

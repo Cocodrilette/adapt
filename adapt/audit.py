@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timezone
+from sqlalchemy.engine import Engine
 from sqlmodel import Session
 from fastapi import Request
 
@@ -16,12 +17,14 @@ def log_action(
     action: str,
     resource: str | None = None,
     details: str | None = None,
-    user_id: int | None = None
+    user_id: int | None = None,
+    engine: Engine | None = None,
 ):
     """Log an action to the audit log."""
     logger.debug(f"Logging action: {action} on {resource}")
     try:
-        engine = request.app.state.db_engine
+        if engine is None:
+            engine = request.app.state.db_engine
         
         # Try to get user_id from request state if not provided
         if user_id is None:

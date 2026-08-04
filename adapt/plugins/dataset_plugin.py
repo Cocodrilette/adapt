@@ -12,6 +12,7 @@ from fastapi.routing import APIRouter
 from sqlmodel import Session
 
 from adapt.cache import get_cache, set_cache, invalidate_cache
+from ..audit import log_action
 from ..locks import LockConflictError, LockTimeoutError
 from ..models import QueryParams
 from ..utils import build_ui_links
@@ -438,6 +439,28 @@ class DatasetPlugin(Plugin):
 
                 # Write back
                 self._write_rows(resource, existing_rows, header)
+
+                try:
+                    audit_resource = resource.path.relative_to(context.root).as_posix()
+                except ValueError:
+                    audit_resource = resource.path.name
+                sub_namespace = resource.metadata.get("sub_namespace")
+                if sub_namespace:
+                    audit_resource = f"{audit_resource}/{sub_namespace}"
+
+                if action == "create":
+                    row_count = len(payload)
+                    row_label = "row" if row_count == 1 else "rows"
+                    audit_details = f"Created {row_count} dataset {row_label}"
+                else:
+                    audit_details = f"{action.title()}d dataset row {payload['_row_id']}"
+                log_action(
+                    request,
+                    f"{action}_dataset_rows" if action == "create" else f"{action}_dataset_row",
+                    audit_resource,
+                    audit_details,
+                    engine=context.engine,
+                )
 
                 return {"success": True}
         except (LockConflictError, LockTimeoutError) as e:

@@ -127,3 +127,5 @@ recommended mechanism for MCP clients.
 
 MCP does not expose user, group, permission, lock, cache, API key, or audit
 administration. The `write_resource` tool rejects writes in read-only mode.
+Successful `write_resource` calls create dataset audit records through the
+shared mutation path.

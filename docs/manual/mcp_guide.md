@@ -60,6 +60,9 @@ Give the agent its own account rather than reusing the superuser's — it
 keeps audit logs meaningful and lets you revoke access without touching
 anything else.
 
+Successful `write_resource` calls create the same dataset audit records as
+REST mutations.
+
 ```bash
 adapt admin create-user /path/to/docroot --username agent --password <a-strong-password>
 adapt admin add-to-group /path/to/docroot --username agent --group <resource>_readonly

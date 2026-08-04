@@ -323,9 +323,21 @@ Audit entries are currently created for:
 - Permission creation, deletion, and group assignment changes
 - Manual lock release and stale-lock cleanup
 - Cache entry deletion and cache clearing
+- Successful dataset creation, update, and deletion operations
 
-Dataset `POST`, `PATCH`, and `DELETE` operations are not currently audited.
-See [Known Limitations](known_limitations.md#audit-coverage).
+Dataset mutations use these audit actions:
+
+| Mutation | Audit action |
+|---|---|
+| `POST` create | `create_dataset_rows` |
+| `PATCH` update | `update_dataset_row` |
+| `DELETE` delete | `delete_dataset_row` |
+
+The audit resource is the dataset path relative to the document root. The path
+includes the file extension and an Excel sheet namespace when applicable.
+
+The details contain the created row count or the affected row ID. They do not
+contain dataset values.
 
 Admin UI page:
 

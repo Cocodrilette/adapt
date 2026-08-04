@@ -17,7 +17,7 @@ import time
 
 import pytest
 import uvicorn
-from sqlmodel import Session
+from sqlmodel import Session, select
 
 from mcp import ClientSession
 from mcp.client.streamable_http import streamablehttp_client
@@ -26,7 +26,7 @@ from adapt.api_keys import create_api_key_record
 from adapt.app import create_app
 from adapt.auth.password import hash_password
 from adapt.config import AdaptConfig
-from adapt.storage import Action, Group, GroupPermission, Permission, User, UserGroup
+from adapt.storage import AuditLog, Action, Group, GroupPermission, Permission, User, UserGroup
 
 
 class _TestServer(uvicorn.Server):
@@ -97,6 +97,7 @@ def _make_user_with_key(app, username, *, superuser=False, reads=(), writes=()):
             db.commit()
 
         raw_key, _ = create_api_key_record(db, user.id, "test key", None)
+        db.refresh(user)
         return user, raw_key
 
 
@@ -220,7 +221,7 @@ def test_search_respects_permissions(live_server):
 
 def test_write_resource_succeeds_and_is_reflected_in_read(live_server):
     base_url, app = live_server
-    _, raw_key = _make_user_with_key(app, "writer", reads=["a"], writes=["a"])
+    user, raw_key = _make_user_with_key(app, "writer", reads=["a"], writes=["a"])
     headers = {"X-API-Key": raw_key}
 
     write_result = asyncio.run(_call(
@@ -232,6 +233,15 @@ def test_write_resource_succeeds_and_is_reflected_in_read(live_server):
     read_result = asyncio.run(_call(base_url, headers=headers, tool="read_resource", arguments={"resource": "a"}))
     rows = _result_json(read_result)
     assert any(row.get("name") == "Dana" for row in rows)
+
+    with Session(app.state.db_engine) as db:
+        audit_entry = db.exec(
+            select(AuditLog).where(AuditLog.action == "create_dataset_rows")
+        ).one()
+
+    assert audit_entry.user_id == user.id
+    assert audit_entry.resource == "a.csv"
+    assert audit_entry.details == "Created 1 dataset row"
 
 
 def test_write_resource_fails_for_unpermitted_user(live_server):

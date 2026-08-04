@@ -159,7 +159,7 @@ Superuser endpoints include:
 - `/admin/api-keys`
 - `/admin/audit-logs`
 
-Audit coverage is selective. Adapt records these events:
+Adapt records these events:
 
 - Successful login and logout
 - API-key creation and revocation
@@ -169,10 +169,14 @@ Audit coverage is selective. Adapt records these events:
 - Permission creation, deletion, and assignment changes
 - Manual lock operations
 - Cache deletion and clearing
+- Successful dataset creation, update, and deletion operations
 
-Adapt does not record dataset `POST`, `PATCH`, or `DELETE` operations. Thus,
-the audit log is not a complete write history.
-See [Known Limitations](known_limitations.md#audit-coverage).
+REST and MCP dataset mutations use the shared audit path. The record contains
+the user, source IP, dataset path, action, timestamp, and mutation summary.
+The record does not contain dataset values.
+
+Audit records describe successful operations. If you need a history that
+includes failed requests, use trusted reverse-proxy access logs.
 
 ## Practical Checks
 

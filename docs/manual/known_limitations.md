@@ -29,14 +29,6 @@ write authorization, implement and test a custom write path.
 
 Do not index rows that contain data with per-user access restrictions.
 
-## Audit Coverage
-
-Adapt records selected authentication and administrative actions. Dataset
-`POST`, `PATCH`, and `DELETE` operations do not create audit entries.
-
-The audit log is not a complete history of writes. When a complete request
-history is required, use access logs from a trusted reverse proxy.
-
 ## Package Versions
 
 The repository can contain changes that are newer than the published

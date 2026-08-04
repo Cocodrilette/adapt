@@ -10,7 +10,7 @@ Adapt is a lightweight, FastAPI-powered adaptive server that automatically turns
 - **Rich HTML UIs**: Built-in DataTables interfaces with sorting, searching, and inline editing
 - **Media Streaming**: HTTP streaming for audio/video files with gallery UIs
 - **Python Handlers**: Custom business logic via Python files with auto-registered FastAPI routers
-- **Security Layer**: Authentication, authorization, and selective audit logging
+- **Security Layer**: Authentication, authorization, and audit records for security events and dataset mutations
 - **Admin Interface**: Web-based administration for users, groups, permissions, and system monitoring
 - **Caching System**: SQLite-backed caching for performance optimization
 - **Plugin Architecture**: Extensible system for supporting new file types and handlers
