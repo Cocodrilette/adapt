@@ -2,6 +2,7 @@ import pytest
 from datetime import datetime, timedelta, timezone
 from sqlmodel import Session, select
 from adapt.auth.session import get_session, create_session, SESSION_TTL
+from adapt.auth.password import hash_password, verify_password
 from adapt.storage import User, DBSession, APIKey, init_database
 from adapt.config import AdaptConfig
 import tempfile
@@ -97,6 +98,83 @@ def test_session_expiration_enforced(db_session):
     # Now it should be expired
     result = get_session(db_session, token)
     assert result is None
+
+
+def test_password_change_replaces_password_and_revokes_sessions(tmp_path):
+    """A password change must invalidate the old password and every browser session."""
+    from fastapi.testclient import TestClient
+    from adapt.app import create_app
+
+    config = AdaptConfig(root=tmp_path)
+    engine = init_database(config.db_path)
+    with Session(engine) as db:
+        user = User(
+            username="password_user",
+            password_hash=hash_password("Old!Secure-Phrase1"),
+            is_active=True,
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+        other_token = create_session(db, user.id)
+
+    client = TestClient(create_app(config))
+    login_response = client.post(
+        "/auth/login",
+        data={"username": "password_user", "password": "Old!Secure-Phrase1"},
+    )
+    assert login_response.status_code == 200
+    current_token = client.cookies.get("adapt_session")
+
+    wrong_current = client.put(
+        "/auth/password",
+        json={
+            "current_password": "wrong-password",
+            "new_password": "New!Secure-Phrase2",
+        },
+    )
+    assert wrong_current.status_code == 400
+    assert client.cookies.get("adapt_session") == current_token
+
+    weak_password = client.put(
+        "/auth/password",
+        json={
+            "current_password": "Old!Secure-Phrase1",
+            "new_password": "password",
+        },
+    )
+    assert weak_password.status_code == 400
+    assert client.cookies.get("adapt_session") == current_token
+
+    response = client.put(
+        "/auth/password",
+        json={
+            "current_password": "Old!Secure-Phrase1",
+            "new_password": "New!Secure-Phrase2",
+        },
+    )
+    assert response.status_code == 200
+    assert client.cookies.get("adapt_session") is None
+
+    with Session(engine) as db:
+        user = db.exec(select(User).where(User.username == "password_user")).one()
+        assert verify_password("New!Secure-Phrase2", user.password_hash)
+        assert not verify_password("Old!Secure-Phrase1", user.password_hash)
+        tokens = db.exec(select(DBSession).where(DBSession.user_id == user.id)).all()
+        assert tokens == []
+        assert get_session(db, current_token) is None
+        assert get_session(db, other_token) is None
+
+    old_login = client.post(
+        "/auth/login",
+        data={"username": "password_user", "password": "Old!Secure-Phrase1"},
+    )
+    assert old_login.status_code == 401
+    new_login = client.post(
+        "/auth/login",
+        data={"username": "password_user", "password": "New!Secure-Phrase2"},
+    )
+    assert new_login.status_code == 200
 
 
 def test_middleware_uses_get_session(tmp_path):

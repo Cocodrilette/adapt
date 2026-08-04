@@ -58,6 +58,7 @@ adapt admin create-permissions <directory> <resource>...
 adapt admin list-groups <directory>
 adapt admin list-users <directory>
 adapt admin create-user <directory> --username <username> [--password <password>] [--superuser]
+adapt admin change-password <directory> --username <username> [--password <password>]
 adapt admin delete-user <directory> --username <username>
 adapt admin create-group <directory> --name <group>
 adapt admin delete-group <directory> --name <group>

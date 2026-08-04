@@ -13,6 +13,15 @@ For unauthenticated users:
 - You can reach login at `/auth/login`.
 - Access to generated resource routes depends on authentication and permissions.
 
+## Profile
+
+Open `/profile` to change your password or manage your API keys. Enter your
+current password before you set a new password. Adapt signs you out of all
+browser sessions after a successful change. Sign in with the new password.
+
+Password changes do not revoke API keys. If a key must no longer authenticate,
+revoke it separately.
+
 ## Generated UI Pages
 
 For dataset resources (CSV, Excel sheets, Parquet), Adapt provides DataTables-based UIs at:

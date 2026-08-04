@@ -26,6 +26,9 @@ adapt admin create-permissions /path/to/docroot __all__
 # Create a regular user
 adapt admin create-user --username editor --password secret /path/to/docroot
 
+# Reset an existing password and revoke that user's browser sessions
+adapt admin change-password --username editor /path/to/docroot
+
 # By default, the editor user has no permissions.
 # See available groups (created by `adapt admin create-permissions`) and assign user to desired group
 adapt admin list-groups /path/to/docroot
@@ -74,6 +77,7 @@ This reflects the current implementation in the codebase.
 - **Authentication:** session cookies and API keys (`X-API-Key`)
 - **Authorization:** RBAC (users, groups, permissions), plus superuser bypass
 - **Password security:** PBKDF2 hashing with per-user salts
+- **Password changes:** self-service and administrator resets revoke all browser sessions for the user
 - **Session security:** expiration enforcement, sliding renewal, cleanup task
 - **CSRF protection:** enforced for cookie-authenticated unsafe methods (`POST/PUT/PATCH/DELETE`), including mixed session + API-key requests
 - **Redirect hardening:** login `next` paths are validated as local relative paths

@@ -66,7 +66,7 @@ assigned companion `ui_path`. It does not cache streamed file bodies.
 
 All `/admin/*` routes require a superuser. The Admin UI supports these actions:
 
-* List, create, and delete users
+* List, create, delete, and reset passwords for users
 * List, create, and delete groups
 * Add users to groups and remove them
 * List, create, and delete permissions
@@ -76,7 +76,9 @@ All `/admin/*` routes require a superuser. The Admin UI supports these actions:
 * List and delete cache entries, or clear the cache
 * List and release locks, or clean stale locks
 
-There is no admin route to update a user or change a password.
+The Profile UI lets a user change their password after they enter the current
+password. The Admin UI lets a superuser reset any user password. Both actions
+revoke all browser sessions for the affected user.
 
 `GET /health` is a separate system route. It returns status, version, and time
 to all callers. An authenticated caller also receives uptime, cache size, and

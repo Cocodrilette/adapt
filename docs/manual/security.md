@@ -58,8 +58,12 @@ Password handling:
 - Per-user random salt
 - Constant-time comparison for verification
 
-Users and administrators cannot change an existing password through a
-supported workflow. See [Known Limitations](known_limitations.md#password-changes).
+Users can change their password in the Profile UI. They must enter their
+current password. The new password must pass the password-strength check.
+
+Administrators can reset a user password in the Admin UI, admin API, or CLI.
+Each password change revokes all browser sessions for that user. API keys stay
+active and must be revoked separately.
 
 ## CSRF Protection
 

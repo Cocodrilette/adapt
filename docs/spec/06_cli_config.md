@@ -29,9 +29,11 @@ Operational commands include:
 * `adapt reindex <root> [--force]` rebuilds the full-text search index. The
   option also indexes resources whose file metadata is unchanged.
 
-Administrative commands list, create, and delete users or groups. They can add
-users to groups or remove them. They can also list resources and create the
-standard resource permissions and groups.
+Administrative commands list, create, and delete users or groups. The
+`change-password` command replaces a user password and revokes all browser
+sessions for that user. Administrative commands can add users to groups or
+remove them. They can also list resources and create the standard resource
+permissions and groups.
 
 `adapt admin create-permissions <root> <resources>...` accepts `__all__` for all
 resources. The `--all-group` and `--read-group` values are prefixes. The

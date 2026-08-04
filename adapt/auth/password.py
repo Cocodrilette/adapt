@@ -2,6 +2,10 @@ import secrets
 import hashlib
 import logging
 
+from sqlmodel import Session, delete
+
+from ..storage import DBSession, User
+
 logger = logging.getLogger(__name__)
 
 def hash_password(password: str) -> str:
@@ -22,3 +26,12 @@ def verify_password(password: str, hashed: str) -> bool:
     result = secrets.compare_digest(new_digest, digest)
     logger.debug("Password verification %s", "successful" if result else "failed")
     return result
+
+
+def update_password(db: Session, user: User, password: str) -> None:
+    """Replace a user's password and revoke all of their browser sessions."""
+    user.password_hash = hash_password(password)
+    db.add(user)
+    db.exec(delete(DBSession).where(DBSession.user_id == user.id))
+    db.commit()
+    logger.info("Updated password and revoked sessions for user %s", user.username)

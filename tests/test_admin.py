@@ -1,9 +1,11 @@
 import pytest
 from fastapi.testclient import TestClient
+from sqlmodel import Session, select
 from adapt.config import AdaptConfig
 from adapt.app import create_app
-from adapt.storage import init_database, User
-from adapt.auth.password import hash_password
+from adapt.storage import DBSession, init_database, User
+from adapt.auth.password import hash_password, verify_password
+from adapt.auth.session import create_session
 from pathlib import Path
 import io
 import sys
@@ -56,6 +58,7 @@ def test_admin_ui_renders_for_superuser(client):
     assert "text/html" in response.headers["content-type"]
     assert "<h1>Adapt</h1>" in response.text
     assert 'data-sortable-table' in response.text
+    assert "Reset Password" in response.text
 
 
 def test_profile_page_includes_sortable_table_support(client):
@@ -67,6 +70,7 @@ def test_profile_page_includes_sortable_table_support(client):
     assert "text/html" in response.headers["content-type"]
     assert "/static/sortable-tables.js" in response.text
     assert "data-sortable-table" in response.text
+    assert 'id="change-password-form"' in response.text
 
 
 def test_admin_flow(client):
@@ -104,6 +108,29 @@ def test_admin_flow(client):
     response = client.get("/admin/users")
     users = response.json()
     assert not any(u["id"] == user_id for u in users)
+
+
+def test_admin_can_reset_password_and_revoke_user_sessions(client, app):
+    client.post("/auth/login", data={"username": "admin", "password": "admin"})
+    created = client.post(
+        "/admin/users",
+        json={"username": "reset_user", "password": "old-password"},
+    ).json()
+
+    with Session(app.state.db_engine) as db:
+        old_token = create_session(db, created["id"])
+
+    response = client.put(
+        f"/admin/users/{created['id']}/password",
+        json={"new_password": "New!Secure-Phrase3"},
+    )
+    assert response.status_code == 200
+    assert response.json()["sessions_revoked"] is True
+
+    with Session(app.state.db_engine) as db:
+        user = db.get(User, created["id"])
+        assert verify_password("New!Secure-Phrase3", user.password_hash)
+        assert db.exec(select(DBSession).where(DBSession.token == old_token)).first() is None
 
 def test_group_flow(client):
     # Login

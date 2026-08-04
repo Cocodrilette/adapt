@@ -63,17 +63,6 @@ session, and API-key authentication can accept an inactive user.
 When access must stop, revoke all sessions and API keys for the user. If the
 account is no longer required, delete the user.
 
-### Password Changes
-
-Adapt has no supported workflow to change the password of an existing user.
-The Profile UI manages API keys but does not manage passwords.
-
-The admin API and CLI can create or delete users. They cannot set a new
-password for an existing user.
-
-When a password must change, create a replacement account. Assign its access
-before you delete the old account.
-
 ## Package Versions
 
 The repository can contain changes that are newer than the published

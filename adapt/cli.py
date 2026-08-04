@@ -83,6 +83,17 @@ def main() -> None:
     admin_delete_user_parser.add_argument("root", nargs="?", default=".", help="Document root")
     admin_delete_user_parser.add_argument("--username", required=True, help="Username")
 
+    admin_change_password_parser = admin_subparsers.add_parser("change-password", help="Change a user password")
+    admin_change_password_parser.add_argument("root", nargs="?", default=".", help="Document root")
+    admin_change_password_parser.add_argument("--username", required=True, help="Username")
+    admin_change_password_parser.add_argument("--password", help="New password (will prompt if missing)")
+    admin_change_password_parser.add_argument("--password-confirm", help="Password confirmation for non-interactive use")
+    admin_change_password_parser.add_argument(
+        "--allow-weak-password",
+        action="store_true",
+        help="Allow a weak password without the safety confirmation prompt",
+    )
+
     admin_create_group_parser = admin_subparsers.add_parser("create-group", help="Create group")
     admin_create_group_parser.add_argument("root", nargs="?", default=".", help="Document root")
     admin_create_group_parser.add_argument("--name", required=True, help="Group name")

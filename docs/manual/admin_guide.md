@@ -57,6 +57,7 @@ Users:
 
 - `GET /admin/users`
 - `POST /admin/users`
+- `PUT /admin/users/{user_id}/password`
 - `DELETE /admin/users/{user_id}`
 
 Groups:
@@ -114,11 +115,16 @@ User management:
 
 ```bash
 adapt admin create-user /path/to/docroot --username newuser --password secret
+adapt admin change-password /path/to/docroot --username newuser
 adapt admin delete-user /path/to/docroot --username olduser
 ```
 
-The CLI cannot change an existing password. See
-[Known Limitations](known_limitations.md#password-changes).
+The password-change command prompts for the new password by default. For
+noninteractive use, add `--password` and `--password-confirm`.
+
+The command applies the password-strength check. If a weak password is
+required, use `--allow-weak-password`. A successful change revokes all browser
+sessions for the user.
 
 Group management:
 

@@ -6,11 +6,13 @@ from fastapi import Depends, HTTPException, Request, Query
 from sqlmodel import Session, select
 
 from ..auth import require_superuser, hash_password
+from ..auth.password import update_password
+from ..commands.passwords import is_weak_password
 from ..storage import User, get_db_session
 from ..utils.query import apply_filter, apply_sort, apply_pagination
 from ..audit import log_action
 from . import router
-from .models import UserCreate, UserPublic
+from .models import PasswordReset, UserCreate, UserPublic
 
 logger = logging.getLogger(__name__)
 
@@ -102,6 +104,36 @@ def create_user(user_data: UserCreate, request: Request, db: Session = Depends(g
         is_superuser=new_user.is_superuser,
         created_at=new_user.created_at,
     )
+
+
+@router.put("/users/{user_id}/password")
+def reset_user_password(
+    user_id: int,
+    password_data: PasswordReset,
+    request: Request,
+    db: Session = Depends(get_db_session),
+    user: User = Depends(require_superuser),
+):
+    """Replace a user's password and revoke their browser sessions."""
+    if request.app.state.config.readonly:
+        raise HTTPException(status_code=405, detail="Server is in read-only mode")
+
+    target = db.get(User, user_id)
+    if not target:
+        raise HTTPException(status_code=404, detail="User not found")
+    if is_weak_password(password_data.new_password, username=target.username):
+        raise HTTPException(status_code=400, detail="New password is too weak")
+
+    update_password(db, target, password_data.new_password)
+    log_action(
+        request,
+        "reset_password",
+        "user",
+        f"Reset password for user {target.username}",
+        user.id,
+    )
+    logger.info("User %s reset the password for user %s", user.username, target.username)
+    return {"success": True, "sessions_revoked": True}
 
 @router.delete("/users/{user_id}")
 def delete_user(user_id: int, request: Request, db: Session = Depends(get_db_session), user: User = Depends(require_superuser)):

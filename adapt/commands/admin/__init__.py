@@ -8,6 +8,7 @@ from .list_groups import run_list_groups
 from .list_users import run_list_users
 from .create_user import run_create_user
 from .delete_user import run_delete_user
+from .change_password import run_change_password
 from .create_group import run_create_group
 from .delete_group import run_delete_group
 from .add_to_group import run_add_to_group
@@ -58,6 +59,15 @@ def run_admin(args):
     elif args.admin_command == "delete-user":
         logger.debug("Running admin command: delete-user for username=%s", args.username)
         run_delete_user(Path(args.root).resolve(), args.username)
+    elif args.admin_command == "change-password":
+        logger.debug("Running admin command: change-password for username=%s", args.username)
+        run_change_password(
+            root=Path(args.root).resolve(),
+            username=args.username,
+            password=args.password,
+            password_confirm=args.password_confirm,
+            allow_weak_password=args.allow_weak_password,
+        )
     elif args.admin_command == "create-group":
         logger.debug("Running admin command: create-group for name=%s", args.name)
         run_create_group(Path(args.root).resolve(), args.name, args.description)

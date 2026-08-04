@@ -32,6 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     const modals = {
         user: document.getElementById('user-modal'),
+        password: document.getElementById('password-modal'),
         group: document.getElementById('group-modal'),
         members: document.getElementById('members-modal'),
         permission: document.getElementById('permission-modal'),
@@ -40,6 +41,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     const forms = {
         user: document.getElementById('add-user-form'),
+        password: document.getElementById('reset-password-form'),
         group: document.getElementById('add-group-form'),
         permission: document.getElementById('add-permission-form')
     };
@@ -144,6 +146,16 @@ document.addEventListener('DOMContentLoaded', () => {
             loadUsers();
         });
 
+        forms.password.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(forms.password);
+            if (formData.get('new_password') !== formData.get('new_password_confirm')) {
+                alert('The new passwords do not match.');
+                return;
+            }
+            await resetPassword(formData.get('user_id'), formData.get('new_password'));
+        });
+
         forms.group.addEventListener('submit', async (e) => {
             e.preventDefault();
             const formData = new FormData(forms.group);
@@ -233,6 +245,32 @@ document.addEventListener('DOMContentLoaded', () => {
         const res = await fetch(`/admin/users/${id}`, { method: 'DELETE', headers: csrfHeaders() });
         if (res.ok) loadUsers();
         else alert('Failed to delete user');
+    }
+
+    function openPasswordModal(id) {
+        const target = state.users.find(user => user.id === id);
+        forms.password.reset();
+        forms.password.elements.user_id.value = id;
+        document.getElementById('password-username').textContent = target ? target.username : '';
+        modals.password.classList.add('active');
+    }
+
+    async function resetPassword(id, newPassword) {
+        const res = await fetch(`/admin/users/${id}/password`, {
+            method: 'PUT',
+            headers: csrfHeaders({ 'Content-Type': 'application/json' }),
+            body: JSON.stringify({ new_password: newPassword })
+        });
+        const result = await res.json();
+        if (!res.ok) {
+            alert(result.detail || 'Failed to reset password.');
+            return;
+        }
+        modals.password.classList.remove('active');
+        alert('Password reset. All browser sessions for this user were revoked.');
+        if (Number(id) === state.currentUser.id) {
+            window.location.href = '/auth/login';
+        }
     }
 
     async function loadLocks() {
@@ -402,6 +440,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td><span class="badge" style="background: ${user.is_superuser ? 'var(--primary)' : '#64748b'}">${user.is_superuser ? 'Admin' : 'User'}</span></td>
                 <td data-sort-value="${user.is_active ? '1' : '0'}">${user.is_active ? 'Yes' : 'No'}</td>
                 <td>
+                    <button class="btn secondary" onclick="window.openPasswordModal(${user.id})">Reset Password</button>
                     ${user.id !== state.currentUser.id ?
                 `<button class="btn danger" onclick="window.deleteUser(${user.id})">Delete</button>` :
                 '<span class="text-secondary">Current</span>'}
@@ -517,6 +556,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Expose actions to window for inline onclicks
     window.deleteUser = deleteUser;
+    window.openPasswordModal = openPasswordModal;
     window.releaseLock = releaseLock;
     window.deleteGroup = deleteGroup;
     window.openMembersModal = openMembersModal;

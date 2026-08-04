@@ -2,9 +2,14 @@ from fastapi.testclient import TestClient
 
 from adapt.app import create_app
 from adapt.commands.admin import run_create_permissions
+from adapt.commands.admin.change_password import run_change_password
+from adapt.auth.password import hash_password, verify_password
+from adapt.auth.session import create_session
 from adapt.commands.check import run_check
 from adapt.commands.list_endpoints import run_list_endpoints
 from adapt.config import AdaptConfig
+from adapt.storage import DBSession, User, init_database
+from sqlmodel import Session, select
 
 
 def _seed_workspace(root):
@@ -114,3 +119,26 @@ def test_run_create_permissions_all_with_media_does_not_crash(tmp_path, capsys):
     output = capsys.readouterr().out
     assert "Using all" in output
     assert "Permissions and groups created successfully." in output
+
+
+def test_run_change_password_replaces_password_and_revokes_sessions(tmp_path, capsys):
+    engine = init_database(AdaptConfig(root=tmp_path).db_path)
+    with Session(engine) as db:
+        user = User(username="cli_user", password_hash=hash_password("old-password"))
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+        token = create_session(db, user.id)
+
+    run_change_password(
+        root=tmp_path,
+        username="cli_user",
+        password="New!Secure-Phrase4",
+        password_confirm="New!Secure-Phrase4",
+    )
+
+    assert "revoked all browser sessions" in capsys.readouterr().out
+    with Session(engine) as db:
+        user = db.exec(select(User).where(User.username == "cli_user")).one()
+        assert verify_password("New!Secure-Phrase4", user.password_hash)
+        assert db.exec(select(DBSession).where(DBSession.token == token)).first() is None

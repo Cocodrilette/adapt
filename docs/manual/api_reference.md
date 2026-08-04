@@ -21,7 +21,13 @@ Authentication endpoints:
 - `POST /auth/login` - Login using form fields (`username`, `password`)
 - `POST /auth/logout` - Logout current session
 - `GET /auth/me` - Current authenticated user
+- `PUT /auth/password` - Change the current user password
 - `GET /profile` - Authenticated profile page
+
+`PUT /auth/password` accepts `current_password` and `new_password`. A
+successful change revokes all browser sessions for the user and returns a
+message that tells the user to sign in again. The new password must pass the
+password-strength check.
 
 User API key endpoints (for the currently authenticated user):
 
@@ -242,7 +248,11 @@ Users:
 
 - `GET /admin/users`
 - `POST /admin/users`
+- `PUT /admin/users/{user_id}/password`
 - `DELETE /admin/users/{user_id}`
+
+The password-reset request contains `new_password`. A successful reset revokes
+all browser sessions for the target user. It does not revoke API keys.
 
 Groups:
 
@@ -284,11 +294,18 @@ Audit logs:
 
 - `GET /admin/audit-logs`
 
-Audit entries are currently created for successful login and logout; API-key
-creation and revocation; user and group creation/deletion; group membership
-changes; permission creation/deletion and group assignment changes; manual
-lock release and stale-lock cleanup; and cache clearing/deletion. Dataset
-POST, PATCH, and DELETE operations are not currently audited.
+Audit entries are currently created for:
+
+- Successful login and logout
+- Password changes and administrator resets
+- API-key creation and revocation
+- User and group creation or deletion
+- Group membership changes
+- Permission creation, deletion, and group assignment changes
+- Manual lock release and stale-lock cleanup
+- Cache entry deletion and cache clearing
+
+Dataset `POST`, `PATCH`, and `DELETE` operations are not currently audited.
 See [Known Limitations](known_limitations.md#audit-coverage).
 
 Admin UI page:

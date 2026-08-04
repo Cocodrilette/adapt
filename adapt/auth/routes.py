@@ -9,7 +9,8 @@ from ..storage import User, DBSession, APIKey, get_db_session
 from ..audit import log_action
 from ..api_keys import create_api_key_record, revoke_api_key_record
 from ..utils import build_accessible_ui_links
-from .password import verify_password
+from .password import update_password, verify_password
+from ..commands.passwords import is_weak_password
 from .session import create_session, SESSION_COOKIE
 from .dependencies import require_auth
 from . import router
@@ -19,6 +20,11 @@ logger = logging.getLogger(__name__)
 class APIKeyCreateRequest(BaseModel):
     description: str | None = None
     expires_in_days: int | None = None
+
+
+class PasswordChangeRequest(BaseModel):
+    current_password: str
+    new_password: str
 
 @router.get("/auth/login")
 def login_page(request: Request):
@@ -89,7 +95,31 @@ def profile_page(request: Request, user: User = Depends(require_auth)):
 def me(user: User = Depends(require_auth)):
     """Get current user information."""
     logger.debug("User %s requested their info", user.username)
-    return {"username": user.username, "is_superuser": getattr(user, "is_superuser", False)}
+    return {"id": user.id, "username": user.username, "is_superuser": getattr(user, "is_superuser", False)}
+
+
+@router.put("/auth/password")
+def change_password(
+    password_data: PasswordChangeRequest,
+    request: Request,
+    response: Response,
+    user: User = Depends(require_auth),
+    db: Session = Depends(get_db_session),
+):
+    """Change the current user's password and revoke their browser sessions."""
+    if request.app.state.config.readonly:
+        raise HTTPException(status_code=405, detail="Server is in read-only mode")
+    if not verify_password(password_data.current_password, user.password_hash):
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+    if verify_password(password_data.new_password, user.password_hash):
+        raise HTTPException(status_code=400, detail="New password must be different")
+    if is_weak_password(password_data.new_password, username=user.username):
+        raise HTTPException(status_code=400, detail="New password is too weak")
+
+    update_password(db, user, password_data.new_password)
+    log_action(request, "change_password", "auth", "User changed password", user.id)
+    response.delete_cookie(key=SESSION_COOKIE)
+    return {"message": "Password changed. Sign in again."}
 
 
 @router.post("/api/apikeys", status_code=201)

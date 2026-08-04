@@ -111,6 +111,9 @@ is denied.
 - **Session Expiration:** 7-day TTL with **active enforcement** (checked on every request)
 - **Session Cleanup:** Background task removes expired sessions daily
 - **Sliding Session Renewal:** Active sessions auto-extend by updating last_active
+- **Password Changes:** Users can change their password after current-password
+  verification. Superusers can reset passwords. Each change revokes all
+  browser sessions for the affected user.
 - **HttpOnly cookies:** JavaScript cannot read the session cookie.
 - **Secure cookies:** Direct TLS through `adapt serve` enables the Secure flag.
 - **SameSite=Lax:** The session cookie uses this browser policy.
@@ -133,7 +136,7 @@ is denied.
 - `adapt/auth/session.py` creates, resolves, and extends sessions.
 - `adapt/auth/dependencies.py` resolves users and checks permissions.
 - `adapt/api_keys.py` creates, resolves, and revokes API keys.
-- `adapt/auth/routes.py` provides login, logout, profile, and self-service key routes.
+- `adapt/auth/routes.py` provides login, logout, profile, password-change, and self-service key routes.
 - `adapt/admin/` provides the administrative routes.
 - `adapt/audit.py` creates audit records.
 - `adapt/app.py` configures middleware and session cleanup.
@@ -161,7 +164,8 @@ is denied.
 ### **Current Audit Coverage**
 
 Audit entries cover successful login and logout. They cover API-key creation
-and revocation. They also cover these administrative changes:
+and revocation. They cover password changes and administrator password resets.
+They also cover these administrative changes:
 
 * User and group creation or deletion
 * Group membership changes

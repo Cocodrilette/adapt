@@ -11,6 +11,11 @@ class UserCreate(BaseModel):
     password: str
     is_superuser: bool = False
 
+
+class PasswordReset(BaseModel):
+    """Model for replacing a user's password."""
+    new_password: str
+
 class GroupCreate(BaseModel):
     """Model for creating a new group."""
     name: str

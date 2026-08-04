@@ -8,6 +8,29 @@
         <h1>Your Profile</h1>
         <p>Manage your API keys and account settings.</p>
 
+        <h2>Password</h2>
+        <div class="card mb-4">
+            <div class="card-header">Change Password</div>
+            <div class="card-body">
+                <form id="change-password-form">
+                    <div class="mb-3">
+                        <label for="current_password" class="form-label">Current password</label>
+                        <input type="password" class="form-control" id="current_password" name="current_password" autocomplete="current-password" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="new_password" class="form-label">New password</label>
+                        <input type="password" class="form-control" id="new_password" name="new_password" autocomplete="new-password" required>
+                        <div class="form-text">Use at least 10 characters. Avoid common words and personal information.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="new_password_confirm" class="form-label">Confirm new password</label>
+                        <input type="password" class="form-control" id="new_password_confirm" name="new_password_confirm" autocomplete="new-password" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Change Password</button>
+                </form>
+            </div>
+        </div>
+
         <h2>API Keys</h2>
         <p>API keys allow programmatic access to Adapt resources. Create keys for scripts, tools, or integrations.</p>
 
@@ -60,6 +83,7 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const createForm = document.getElementById('create-key-form');
+    const passwordForm = document.getElementById('change-password-form');
     const keysList = document.getElementById('keys-list');
 
     function csrfHeaders(headers = {}) {
@@ -72,6 +96,32 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Load existing keys
     loadKeys();
+
+    passwordForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const formData = new FormData(passwordForm);
+        const newPassword = formData.get('new_password');
+        if (newPassword !== formData.get('new_password_confirm')) {
+            alert('The new passwords do not match.');
+            return;
+        }
+
+        const response = await fetch('/auth/password', {
+            method: 'PUT',
+            headers: csrfHeaders({ 'Content-Type': 'application/json' }),
+            body: JSON.stringify({
+                current_password: formData.get('current_password'),
+                new_password: newPassword
+            })
+        });
+        const result = await response.json();
+        if (!response.ok) {
+            alert(result.detail || 'Failed to change password.');
+            return;
+        }
+        alert(result.message);
+        window.location.href = '/auth/login';
+    });
 
     // Handle form submission
     createForm.addEventListener('submit', async function(e) {
