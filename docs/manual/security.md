@@ -27,11 +27,12 @@ API key behavior:
 - Keys can be inactive or expired
 - `last_used_at` is updated on successful key usage
 
-Current limitation: authentication does not check the associated user's
-`is_active` flag. Marking a user inactive does not currently prevent an
-otherwise valid session or API key from authenticating; revoke sessions and
-keys or delete the user when access must be removed.
-See [Known Limitations](known_limitations.md#inactive-users).
+All authentication methods require an active user. Inactive users cannot log
+in or authenticate with an existing session or API key.
+
+An administrator can deactivate a user in the Admin UI, API, or CLI.
+Deactivation revokes browser sessions for the user. API keys remain stored but
+cannot authenticate until an administrator activates the user.
 
 The MCP interface (`/mcp/`, see the [MCP Guide](mcp_guide.md)) uses the same
 authentication resolver as HTTP routes, so tool calls accept either a
@@ -160,12 +161,19 @@ Superuser endpoints include:
 - `/admin/api-keys`
 - `/admin/audit-logs`
 
-Audit coverage is selective. Adapt records successful login/logout, API-key
-creation/revocation, user and group creation/deletion, group membership and
-permission-assignment changes, permission creation/deletion, manual lock
-operations, and cache deletion/clearing. It does not currently record dataset
-POST, PATCH, or DELETE operations, so the audit log is not a complete write
-history.
+Audit coverage is selective. Adapt records these events:
+
+- Successful login and logout
+- API-key creation and revocation
+- User and group creation or deletion
+- User activation and deactivation
+- Group membership changes
+- Permission creation, deletion, and assignment changes
+- Manual lock operations
+- Cache deletion and clearing
+
+Adapt does not record dataset `POST`, `PATCH`, or `DELETE` operations. Thus,
+the audit log is not a complete write history.
 See [Known Limitations](known_limitations.md#audit-coverage).
 
 ## Practical Checks

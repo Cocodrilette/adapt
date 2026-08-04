@@ -49,6 +49,9 @@ Admin UI route:
 
 Requires superuser authentication.
 
+The Users tab includes an Activate or Deactivate button for each other user.
+An administrator cannot deactivate the account that is in use.
+
 ## Admin API Surface
 
 All admin routes are under `/admin` and require superuser access.
@@ -58,7 +61,11 @@ Users:
 - `GET /admin/users`
 - `POST /admin/users`
 - `PUT /admin/users/{user_id}/password`
+- `PUT /admin/users/{user_id}/status`
 - `DELETE /admin/users/{user_id}`
+
+Send `{"is_active": false}` to deactivate a user. Send
+`{"is_active": true}` to activate the user.
 
 Groups:
 
@@ -116,6 +123,8 @@ User management:
 ```bash
 adapt admin create-user /path/to/docroot --username newuser --password secret
 adapt admin change-password /path/to/docroot --username newuser
+adapt admin deactivate-user /path/to/docroot --username newuser
+adapt admin activate-user /path/to/docroot --username newuser
 adapt admin delete-user /path/to/docroot --username olduser
 ```
 
@@ -125,6 +134,9 @@ noninteractive use, add `--password` and `--password-confirm`.
 The command applies the password-strength check. If a weak password is
 required, use `--allow-weak-password`. A successful change revokes all browser
 sessions for the user.
+
+Deactivation revokes all browser sessions for the user. The API keys for the
+user remain stored, but they cannot authenticate while the user is inactive.
 
 Group management:
 

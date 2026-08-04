@@ -74,7 +74,7 @@ This reflects the current implementation in the codebase.
 
 ### In Place
 
-- **Authentication:** session cookies and API keys (`X-API-Key`)
+- **Authentication:** session cookies, API keys (`X-API-Key`), and inactive-user enforcement
 - **Authorization:** RBAC (users, groups, permissions), plus superuser bypass
 - **Password security:** PBKDF2 hashing with per-user salts
 - **Password changes:** self-service and administrator resets revoke all browser sessions for the user

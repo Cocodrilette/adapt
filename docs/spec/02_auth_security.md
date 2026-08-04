@@ -52,16 +52,19 @@ and `user` columns. The search subsystem creates its own SQLite tables.
 #### **Session-Based (Browser)**
 1. Submit credentials to `POST /auth/login`.
 2. The route compares the password with its PBKDF2 hash.
-3. The route creates a seven-day database session.
-4. The route sets the HttpOnly `adapt_session` cookie.
-5. The authentication middleware resolves this cookie for later requests.
-6. Each valid request extends the session expiration by seven days.
+3. The route rejects an inactive user.
+4. The route creates a seven-day database session.
+5. The route sets the HttpOnly `adapt_session` cookie.
+6. The authentication middleware resolves this cookie for later requests.
+7. The resolver rejects the session if the user is inactive.
+8. Each valid request extends the session expiration by seven days.
 
 #### **API Key-Based (Programmatic)**
 1. Include the `X-API-Key: <key>` header in the request.
 2. The authentication dependency computes the SHA-256 hash.
 3. The dependency finds an active, unexpired key with this hash.
-4. The dependency returns the associated user and updates `last_used_at`.
+4. The dependency rejects the key if its user is inactive.
+5. The dependency returns the associated user and updates `last_used_at`.
 
 #### **API Key Management**
 - **Self-issue:** Authenticated users can create their own keys through
@@ -127,9 +130,8 @@ is denied.
   Dataset writes are not currently audited.
 - **Row-Level Filtering:** Plugins can filter rows during reads. Built-in
   plugins do not do so, and the hook does not safely enforce write-level RLS.
-- **Inactive-user limitation:** User authentication does not currently inspect
-  `User.is_active`, so an inactive user can still authenticate with otherwise
-  valid credentials, sessions, or API keys.
+- **Inactive-user enforcement:** Login, session, and API-key authentication
+  require `User.is_active`. Deactivation also revokes browser sessions.
 ### **Runtime Behavior Locations**
 
 - `adapt/auth/password.py` hashes and compares passwords.
@@ -137,7 +139,8 @@ is denied.
 - `adapt/auth/dependencies.py` resolves users and checks permissions.
 - `adapt/api_keys.py` creates, resolves, and revokes API keys.
 - `adapt/auth/routes.py` provides login, logout, profile, password-change, and self-service key routes.
-- `adapt/admin/` provides the administrative routes.
+- `adapt/admin/` provides the administrative routes, including user status changes.
+- `adapt/users.py` changes user status and revokes sessions during deactivation.
 - `adapt/audit.py` creates audit records.
 - `adapt/app.py` configures middleware and session cleanup.
 
@@ -168,6 +171,7 @@ and revocation. They cover password changes and administrator password resets.
 They also cover these administrative changes:
 
 * User and group creation or deletion
+* User activation and deactivation
 * Group membership changes
 * Permission creation, deletion, and group assignment changes
 * Manual lock operations

@@ -9,6 +9,7 @@ from .list_users import run_list_users
 from .create_user import run_create_user
 from .delete_user import run_delete_user
 from .change_password import run_change_password
+from .set_user_active import run_set_user_active
 from .create_group import run_create_group
 from .delete_group import run_delete_group
 from .add_to_group import run_add_to_group
@@ -68,6 +69,10 @@ def run_admin(args):
             password_confirm=args.password_confirm,
             allow_weak_password=args.allow_weak_password,
         )
+    elif args.admin_command in ("activate-user", "deactivate-user"):
+        is_active = args.admin_command == "activate-user"
+        logger.debug("Running admin command: %s for username=%s", args.admin_command, args.username)
+        run_set_user_active(Path(args.root).resolve(), args.username, is_active)
     elif args.admin_command == "create-group":
         logger.debug("Running admin command: create-group for name=%s", args.name)
         run_create_group(Path(args.root).resolve(), args.name, args.description)

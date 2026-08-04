@@ -247,6 +247,22 @@ document.addEventListener('DOMContentLoaded', () => {
         else alert('Failed to delete user');
     }
 
+    async function setUserActive(id, isActive) {
+        const action = isActive ? 'activate' : 'deactivate';
+        if (!confirm(`Are you sure you want to ${action} this user?`)) return;
+        const res = await fetch(`/admin/users/${id}/status`, {
+            method: 'PUT',
+            headers: csrfHeaders({ 'Content-Type': 'application/json' }),
+            body: JSON.stringify({ is_active: isActive })
+        });
+        if (res.ok) {
+            loadUsers();
+        } else {
+            const err = await res.json();
+            alert(err.detail || `Failed to ${action} user`);
+        }
+    }
+
     function openPasswordModal(id) {
         const target = state.users.find(user => user.id === id);
         forms.password.reset();
@@ -442,7 +458,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td>
                     <button class="btn secondary" onclick="window.openPasswordModal(${user.id})">Reset Password</button>
                     ${user.id !== state.currentUser.id ?
-                `<button class="btn danger" onclick="window.deleteUser(${user.id})">Delete</button>` :
+                `<button class="btn ${user.is_active ? 'danger' : 'secondary'}" onclick="window.setUserActive(${user.id}, ${!user.is_active})">${user.is_active ? 'Deactivate' : 'Activate'}</button>
+                 <button class="btn danger" onclick="window.deleteUser(${user.id})">Delete</button>` :
                 '<span class="text-secondary">Current</span>'}
                 </td>
             </tr>
@@ -556,6 +573,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Expose actions to window for inline onclicks
     window.deleteUser = deleteUser;
+    window.setUserActive = setUserActive;
     window.openPasswordModal = openPasswordModal;
     window.releaseLock = releaseLock;
     window.deleteGroup = deleteGroup;

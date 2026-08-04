@@ -66,7 +66,7 @@ assigned companion `ui_path`. It does not cache streamed file bodies.
 
 All `/admin/*` routes require a superuser. The Admin UI supports these actions:
 
-* List, create, delete, and reset passwords for users
+* List, create, activate, deactivate, delete, and reset passwords for users
 * List, create, and delete groups
 * Add users to groups and remove them
 * List, create, and delete permissions

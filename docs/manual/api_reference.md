@@ -15,6 +15,9 @@ mutations, prefer an API key because an API-key-only request is CSRF-exempt.
 Cookie-authenticated unsafe requests must send the `adapt_csrf` cookie value
 in the `X-CSRF-Token` header (or in the `csrf_token` form field).
 
+Each authentication method requires an active user. An inactive user cannot
+log in or authenticate with an existing session or API key.
+
 Authentication endpoints:
 
 - `GET /auth/login` - Login page (HTML)
@@ -249,10 +252,15 @@ Users:
 - `GET /admin/users`
 - `POST /admin/users`
 - `PUT /admin/users/{user_id}/password`
+- `PUT /admin/users/{user_id}/status`
 - `DELETE /admin/users/{user_id}`
 
 The password-reset request contains `new_password`. A successful reset revokes
 all browser sessions for the target user. It does not revoke API keys.
+
+The status request contains the Boolean `is_active` value. Deactivation
+revokes browser sessions. API keys remain stored and cannot authenticate
+until an administrator activates the user.
 
 Groups:
 

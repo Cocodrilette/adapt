@@ -9,10 +9,11 @@ from ..auth import require_superuser, hash_password
 from ..auth.password import update_password
 from ..commands.passwords import is_weak_password
 from ..storage import User, get_db_session
+from ..users import set_user_active
 from ..utils.query import apply_filter, apply_sort, apply_pagination
 from ..audit import log_action
 from . import router
-from .models import PasswordReset, UserCreate, UserPublic
+from .models import PasswordReset, UserCreate, UserPublic, UserStatusUpdate
 
 logger = logging.getLogger(__name__)
 
@@ -134,6 +135,36 @@ def reset_user_password(
     )
     logger.info("User %s reset the password for user %s", user.username, target.username)
     return {"success": True, "sessions_revoked": True}
+
+
+@router.put("/users/{user_id}/status")
+def update_user_status(
+    user_id: int,
+    status_data: UserStatusUpdate,
+    request: Request,
+    db: Session = Depends(get_db_session),
+    user: User = Depends(require_superuser),
+):
+    """Activate or deactivate a user account."""
+    if request.app.state.config.readonly:
+        raise HTTPException(status_code=405, detail="Server is in read-only mode")
+
+    target = db.get(User, user_id)
+    if not target:
+        raise HTTPException(status_code=404, detail="User not found")
+    if target.id == user.id and not status_data.is_active:
+        raise HTTPException(status_code=400, detail="Cannot deactivate yourself")
+
+    revoked_sessions = set_user_active(db, target, status_data.is_active)
+    action = "activate_user" if status_data.is_active else "deactivate_user"
+    state = "Activated" if status_data.is_active else "Deactivated"
+    log_action(request, action, "user", f"{state} user {target.username}", user.id)
+    logger.info("%s user %s by %s", state, target.username, user.username)
+    return {
+        "success": True,
+        "is_active": target.is_active,
+        "sessions_revoked": revoked_sessions,
+    }
 
 @router.delete("/users/{user_id}")
 def delete_user(user_id: int, request: Request, db: Session = Depends(get_db_session), user: User = Depends(require_superuser)):

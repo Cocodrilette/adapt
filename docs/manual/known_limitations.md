@@ -53,16 +53,6 @@ Adapt records selected authentication and administrative actions. Dataset
 The audit log is not a complete history of writes. When a complete request
 history is required, use access logs from a trusted reverse proxy.
 
-## Authentication
-
-### Inactive Users
-
-Authentication does not enforce the `is_active` value for a user. Login,
-session, and API-key authentication can accept an inactive user.
-
-When access must stop, revoke all sessions and API keys for the user. If the
-account is no longer required, delete the user.
-
 ## Package Versions
 
 The repository can contain changes that are newer than the published

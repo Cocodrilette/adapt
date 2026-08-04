@@ -3,7 +3,7 @@ from fastapi.testclient import TestClient
 from sqlmodel import Session, select
 from adapt.config import AdaptConfig
 from adapt.app import create_app
-from adapt.storage import DBSession, init_database, User
+from adapt.storage import APIKey, DBSession, init_database, User
 from adapt.auth.password import hash_password, verify_password
 from adapt.auth.session import create_session
 from pathlib import Path
@@ -131,6 +131,79 @@ def test_admin_can_reset_password_and_revoke_user_sessions(client, app):
         user = db.get(User, created["id"])
         assert verify_password("New!Secure-Phrase3", user.password_hash)
         assert db.exec(select(DBSession).where(DBSession.token == old_token)).first() is None
+
+
+def test_deactivated_user_cannot_authenticate_and_can_be_reactivated(client, app):
+    """Deactivation must block login, sessions, and API keys immediately."""
+    client.post("/auth/login", data={"username": "admin", "password": "admin"})
+    created = client.post(
+        "/admin/users",
+        json={"username": "inactive_user", "password": "account-password"},
+    ).json()
+
+    user_client = TestClient(app)
+    assert user_client.post(
+        "/auth/login",
+        data={"username": "inactive_user", "password": "account-password"},
+    ).status_code == 200
+    key_response = user_client.post(
+        "/api/apikeys",
+        json={"description": "Retained while inactive"},
+    )
+    assert key_response.status_code == 201
+    raw_key = key_response.json()["key"]
+
+    response = client.put(
+        f"/admin/users/{created['id']}/status",
+        json={"is_active": False},
+    )
+    assert response.status_code == 200
+    assert response.json() == {
+        "success": True,
+        "is_active": False,
+        "sessions_revoked": 1,
+    }
+
+    assert user_client.get("/auth/me").status_code == 401
+    assert TestClient(app).get(
+        "/auth/me", headers={"X-API-Key": raw_key}
+    ).status_code == 401
+    assert user_client.post(
+        "/auth/login",
+        data={"username": "inactive_user", "password": "account-password"},
+    ).status_code == 401
+
+    with Session(app.state.db_engine) as db:
+        target = db.get(User, created["id"])
+        assert target.is_active is False
+        assert db.exec(
+            select(DBSession).where(DBSession.user_id == target.id)
+        ).all() == []
+        key = db.exec(select(APIKey).where(APIKey.user_id == target.id)).one()
+        assert key.is_active is True
+        assert key.last_used_at is None
+
+    response = client.put(
+        f"/admin/users/{created['id']}/status",
+        json={"is_active": True},
+    )
+    assert response.status_code == 200
+    assert TestClient(app).get(
+        "/auth/me", headers={"X-API-Key": raw_key}
+    ).status_code == 200
+
+
+def test_admin_cannot_deactivate_current_user(client):
+    client.post("/auth/login", data={"username": "admin", "password": "admin"})
+    admin = client.get("/admin/users").json()[0]
+
+    response = client.put(
+        f"/admin/users/{admin['id']}/status",
+        json={"is_active": False},
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Cannot deactivate yourself"
 
 def test_group_flow(client):
     # Login

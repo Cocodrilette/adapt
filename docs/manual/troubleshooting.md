@@ -33,9 +33,9 @@ adapt serve . --tls-cert /path/to/cert.pem --tls-key /path/to/key.pem
 
 ### Login Fails
 
-- Confirm username exists
-- Verify password
-- Check user is active
+- Make sure that the username exists
+- Make sure that the password is correct
+- Make sure that the user is active
 
 Useful checks:
 
@@ -44,10 +44,17 @@ adapt admin list-users .
 sqlite3 .adapt/adapt.db "SELECT username, is_active FROM users;"
 ```
 
+If the user is inactive, activate the user:
+
+```bash
+adapt admin activate-user . --username <username>
+```
+
 ### API Key Returns 401
 
-- Confirm header format: `X-API-Key: <key>`
-- Ensure key is active and not expired
+- Make sure that the header has this format: `X-API-Key: <key>`
+- Make sure that the key is active and not expired
+- Make sure that the key owner is active
 
 ```bash
 curl -H "X-API-Key: your-key" http://localhost:8000/auth/me

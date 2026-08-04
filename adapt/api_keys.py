@@ -41,6 +41,11 @@ def verify_api_key(db: Session, raw_key: str) -> User | None:
     if not api_key.is_active:
         logger.warning("API key verification failed: key is inactive")
         return None
+
+    user = db.get(User, api_key.user_id)
+    if not user or not user.is_active:
+        logger.warning("API key verification failed: user is inactive or missing")
+        return None
         
     # Check expiration
     if api_key.expires_at:
@@ -59,7 +64,7 @@ def verify_api_key(db: Session, raw_key: str) -> User | None:
     db.commit()
     
     logger.info(f"API key verified successfully for user {api_key.user_id}")
-    return db.get(User, api_key.user_id)
+    return user
 
 def create_api_key_record(
     db: Session,

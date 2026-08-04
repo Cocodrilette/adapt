@@ -71,6 +71,24 @@ def test_get_session_valid(db_session):
     assert result.expires_at > old_expires_at
 
 
+def test_get_session_rejects_inactive_user(db_session):
+    """A stored session must not authenticate an inactive user."""
+    user = User(username="inactive", password_hash="dummy", is_active=True)
+    db_session.add(user)
+    db_session.commit()
+    token = create_session(db_session, user.id)
+
+    user.is_active = False
+    db_session.add(user)
+    db_session.commit()
+
+    assert get_session(db_session, token) is None
+    stored_session = db_session.exec(
+        select(DBSession).where(DBSession.token == token)
+    ).one()
+    assert stored_session is not None
+
+
 def test_get_session_nonexistent(db_session):
     # Act
     result = get_session(db_session, "nonexistent_token")

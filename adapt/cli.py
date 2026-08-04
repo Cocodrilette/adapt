@@ -94,6 +94,14 @@ def main() -> None:
         help="Allow a weak password without the safety confirmation prompt",
     )
 
+    admin_activate_user_parser = admin_subparsers.add_parser("activate-user", help="Activate a user")
+    admin_activate_user_parser.add_argument("root", nargs="?", default=".", help="Document root")
+    admin_activate_user_parser.add_argument("--username", required=True, help="Username")
+
+    admin_deactivate_user_parser = admin_subparsers.add_parser("deactivate-user", help="Deactivate a user")
+    admin_deactivate_user_parser.add_argument("root", nargs="?", default=".", help="Document root")
+    admin_deactivate_user_parser.add_argument("--username", required=True, help="Username")
+
     admin_create_group_parser = admin_subparsers.add_parser("create-group", help="Create group")
     admin_create_group_parser.add_argument("root", nargs="?", default=".", help="Document root")
     admin_create_group_parser.add_argument("--name", required=True, help="Group name")

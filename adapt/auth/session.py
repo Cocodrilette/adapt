@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 from sqlmodel import Session, select
 import logging
 
-from ..storage import DBSession
+from ..storage import DBSession, User
 
 logger = logging.getLogger(__name__)
 
@@ -33,8 +33,10 @@ def get_session(db: Session, token: str) -> DBSession | None:
     now = datetime.now(tz=timezone.utc)
     stmt = (
         select(DBSession)
+        .join(User, User.id == DBSession.user_id)
         .where(DBSession.token == token)
         .where(DBSession.expires_at > now)  # Enforce expiration
+        .where(User.is_active == True)  # noqa: E712 - SQL expression
     )
     session = db.exec(stmt).first()
     

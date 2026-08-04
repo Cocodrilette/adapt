@@ -41,7 +41,7 @@ def login(form: OAuth2PasswordRequestForm = Depends(), request: Request = None, 
     with Session(db_engine) as db:
         stmt = select(User).where(User.username == form.username)
         user = db.exec(stmt).first()
-        if not user or not verify_password(form.password, user.password_hash):
+        if not user or not user.is_active or not verify_password(form.password, user.password_hash):
             logger.warning("Failed login attempt for username %s", form.username)
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
         token = create_session(db, user.id)

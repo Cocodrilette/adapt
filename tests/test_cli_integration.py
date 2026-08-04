@@ -3,6 +3,7 @@ from fastapi.testclient import TestClient
 from adapt.app import create_app
 from adapt.commands.admin import run_create_permissions
 from adapt.commands.admin.change_password import run_change_password
+from adapt.commands.admin.set_user_active import run_set_user_active
 from adapt.auth.password import hash_password, verify_password
 from adapt.auth.session import create_session
 from adapt.commands.check import run_check
@@ -142,3 +143,26 @@ def test_run_change_password_replaces_password_and_revokes_sessions(tmp_path, ca
         user = db.exec(select(User).where(User.username == "cli_user")).one()
         assert verify_password("New!Secure-Phrase4", user.password_hash)
         assert db.exec(select(DBSession).where(DBSession.token == token)).first() is None
+
+
+def test_run_set_user_active_deactivates_and_reactivates_user(tmp_path, capsys):
+    engine = init_database(AdaptConfig(root=tmp_path).db_path)
+    with Session(engine) as db:
+        user = User(username="cli_user", password_hash=hash_password("password"))
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+        create_session(db, user.id)
+
+    run_set_user_active(tmp_path, "cli_user", False)
+    assert "Deactivated user 'cli_user' and revoked 1 browser session(s)" in capsys.readouterr().out
+    with Session(engine) as db:
+        user = db.exec(select(User).where(User.username == "cli_user")).one()
+        assert user.is_active is False
+        assert db.exec(select(DBSession).where(DBSession.user_id == user.id)).all() == []
+
+    run_set_user_active(tmp_path, "cli_user", True)
+    assert "Activated user 'cli_user'" in capsys.readouterr().out
+    with Session(engine) as db:
+        user = db.exec(select(User).where(User.username == "cli_user")).one()
+        assert user.is_active is True
