@@ -151,10 +151,10 @@ open the generated UI or schema route for that resource.
 
 ### Mutation Fails with `409`
 
-- Some runtime write conflicts return `409`; retry after a short delay.
-- An exhausted lock retry currently can return `500` instead of `409`.
-
-See [Known Limitations](known_limitations.md#exhausted-lock-conflicts).
+- Another operation holds the resource lock.
+- Adapt also returns `409` when it exhausts all lock acquisition retries.
+- Inspect `/admin/locks`.
+- After the competing operation finishes, retry the write.
 
 ### Data Not Detected
 

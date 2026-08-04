@@ -134,11 +134,9 @@ Lock behavior includes:
 - Atomic target replacement for built-in dataset plugins where the platform
   supports it
 
-These mechanisms reduce concurrency and partial-write risks; they do not make
-writes uninterruptible or eliminate every race. A lock acquisition that still
-fails after the retry timeout can currently surface as a server error rather
-than a `409` response.
-See [Known Limitations](known_limitations.md#exhausted-lock-conflicts).
+These mechanisms reduce concurrency and partial-write risks. They do not make
+writes uninterruptible or remove every race. Adapt returns `409 Conflict` when
+lock acquisition exhausts all retries.
 
 ## Row-Level Filtering
 

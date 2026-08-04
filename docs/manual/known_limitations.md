@@ -16,14 +16,6 @@ Adapt. This restriction prevents formula and workbook-feature loss.
 
 ## Dataset Writes
 
-### Exhausted Lock Conflicts
-
-Adapt retries lock acquisition with exponential backoff. If all retries fail,
-the conflict can return a server error instead of `409 Conflict`.
-
-Inspect `/admin/locks` and the server log after this error. Then retry the
-write after the competing operation finishes.
-
 ### Write-Level Row Security
 
 `Plugin.filter_for_user()` filters direct dataset reads. The shared search

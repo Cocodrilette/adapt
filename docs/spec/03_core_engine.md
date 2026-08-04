@@ -108,9 +108,8 @@ races or make a writer uninterruptible.
 Legacy `.xls` workbooks do not use this write path. The Excel plugin marks each
 legacy sheet as read-only to prevent data loss from an incompatible writer.
 
-The shared write method converts `RuntimeError` lock conflicts to `409`.
-However, an exhausted retry raises `TimeoutError`. This error can surface as a
-server error instead of `409`.
+The lock manager raises lock-specific exceptions for immediate conflicts and
+exhausted retries. The shared write method converts both exceptions to `409`.
 
 ## 5. Cache
 

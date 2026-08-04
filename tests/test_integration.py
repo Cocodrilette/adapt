@@ -4,7 +4,7 @@ from pathlib import Path
 from adapt.config import AdaptConfig
 from adapt.app import create_app
 from adapt.storage import init_database
-from adapt.locks import LockManager
+from adapt.locks import LockManager, LockTimeoutError
 from adapt.storage import Group, GroupPermission, Permission, User, UserGroup
 from adapt.auth.password import hash_password
 from adapt.auth.session import create_session, SESSION_COOKIE
@@ -211,6 +211,31 @@ def test_api_create(superuser_client):
     data = response.json()
     assert len(data) == 3
     assert data[2]["name"] == "Charlie"
+
+
+def test_api_exhausted_lock_conflict_returns_409(superuser_client, monkeypatch):
+    class ExhaustedLock:
+        def __enter__(self):
+            raise LockTimeoutError("Failed to acquire lock on data.csv after 30s")
+
+        def __exit__(self, exc_type, exc_value, traceback):
+            return False
+
+    monkeypatch.setattr(
+        superuser_client.app.state.lock_manager,
+        "lock",
+        lambda *args, **kwargs: ExhaustedLock(),
+    )
+
+    response = superuser_client.post(
+        "/api/data",
+        json={"action": "create", "data": [{"name": "Charlie", "age": 35}]},
+    )
+
+    assert response.status_code == 409
+    assert response.json() == {
+        "detail": "Failed to acquire lock on data.csv after 30s",
+    }
 
 
 @pytest.mark.parametrize(

@@ -3,7 +3,7 @@ import threading
 import time
 from datetime import datetime, timedelta, timezone
 from sqlmodel import Session, select
-from adapt.locks import LockManager
+from adapt.locks import LockManager, LockTimeoutError
 from adapt.storage import LockRecord, init_database
 import tempfile
 from pathlib import Path
@@ -89,7 +89,7 @@ def test_lock_context_manager_timeout(lock_manager):
     # Acquire lock first
     lock_manager.acquire_lock("test.csv", "user1", "test")
     # Try to acquire with timeout
-    with pytest.raises(TimeoutError, match="Failed to acquire lock"):
+    with pytest.raises(LockTimeoutError, match="Failed to acquire lock"):
         with lock_manager.lock("test.csv", "user2", "test", timeout_seconds=1):
             pass
 

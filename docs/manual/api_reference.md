@@ -379,7 +379,7 @@ curl -H "X-API-Key: key" "http://localhost:8000/api/products/?filter={\"price\":
 - `403` - Permission denied
 - `404` - Resource not found
 - `405` - Method not allowed (including read-only mode mutations)
-- `409` - Some runtime write conflicts
+- `409` - Lock acquisition conflicts
 - `422` - FastAPI request or parameter validation failure
 
 Error bodies are not a single Adapt-specific envelope. FastAPI-generated and
@@ -390,8 +390,7 @@ most application errors use a `detail` member, for example:
 ```
 
 Validation failures can use a list of structured objects under `detail`.
-After lock acquisition retries are exhausted, the current implementation can
-surface a server error instead of the intended `409` response.
-See [Known Limitations](known_limitations.md#exhausted-lock-conflicts).
+Adapt returns `409` when another operation holds the resource lock. This
+response also applies when Adapt exhausts all lock acquisition retries.
 
 Manual navigation: [Previous: User Guide](user_guide.md) | [Index](index.md) | [Next: Admin Guide](admin_guide.md)

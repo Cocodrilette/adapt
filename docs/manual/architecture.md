@@ -131,10 +131,9 @@ Locking uses DB records with per-resource uniqueness and expiration.
 - write operations use lock context manager
 - writable built-in dataset plugins replace the target atomically where supported
 
-The lock timeout currently escapes as a server error instead of reliably
-becoming a `409`. Locking and atomic replacement reduce risk but do not promise
-that writes are race-free or cannot be interrupted.
-See [Known Limitations](known_limitations.md#exhausted-lock-conflicts).
+Adapt returns `409 Conflict` when lock acquisition exhausts all retries.
+Locking and atomic replacement reduce risk. Races can still occur. A write can
+still stop before completion.
 
 ## Observability
 

@@ -133,10 +133,11 @@ adapt serve . --readonly
 
 ### `409 Conflict`
 
-Some runtime write conflicts return `409`. Retry after a short delay. If lock
-acquisition reaches its retry timeout, the current implementation can return
-`500` instead of `409`; inspect `/admin/locks` and the server log.
-See [Known Limitations](known_limitations.md#exhausted-lock-conflicts).
+Adapt returns `409` when another operation holds the resource lock. This
+response also applies when Adapt exhausts all lock acquisition retries.
+
+Inspect `/admin/locks` and the server log. Then retry the write after the
+competing operation finishes.
 
 ### Write Payload Rejected
 

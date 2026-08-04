@@ -101,8 +101,8 @@ the column, expected type, and received type. The generated dataset UI displays
 this detail for failed create and update operations. Validation runs before the
 resource lock is acquired or the backing file is changed.
 
-Some immediate lock conflicts return `409`. An exhausted lock retry can
-surface as a server error because the timeout is not converted to `409`.
+Immediate lock conflicts return `409`. Exhausted lock acquisition retries also
+return `409`.
 
 ## 7. MCP interface
 

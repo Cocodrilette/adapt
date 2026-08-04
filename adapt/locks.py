@@ -15,6 +15,15 @@ from .storage import LockRecord
 
 logger = logging.getLogger(__name__)
 
+
+class LockConflictError(RuntimeError):
+    """Raised when another owner holds the requested resource lock."""
+
+
+class LockTimeoutError(TimeoutError):
+    """Raised when lock acquisition retries reach their timeout."""
+
+
 class LockManager:
     """Simple file‑level lock manager using the `LockRecord` table.
     It provides acquire/release semantics and a context‑manager helper.
@@ -52,7 +61,7 @@ class LockManager:
                 existing = db.exec(select(LockRecord).where(LockRecord.resource == resource)).first()
                 if existing and (existing.expires_at is None or existing.expires_at.replace(tzinfo=timezone.utc) > now):
                     logger.warning(f"Lock already exists for {resource} by {existing.owner}")
-                    raise RuntimeError(f"Resource '{resource}' is already locked by {existing.owner}")
+                    raise LockConflictError(f"Resource '{resource}' is already locked by {existing.owner}")
 
                 if existing is not None:
                     logger.debug(f"Expired lock found for {resource}, removing stale row")
@@ -61,7 +70,7 @@ class LockManager:
                     return self.acquire_lock(resource, owner, reason, ttl_seconds)
 
                 logger.warning(f"Lock acquisition race detected for {resource} with no remaining row")
-                raise RuntimeError(f"Resource '{resource}' is already locked")
+                raise LockConflictError(f"Resource '{resource}' is already locked")
 
     def release_lock(self, lock_id: int) -> bool:
         """Release the lock with *lock_id*; returns True if a lock was deleted."""
@@ -131,7 +140,9 @@ class LockManager:
                     delay = min(0.1 * (2 ** min(retry_count, 10)), 1.0)
                     time.sleep(delay)
                     retry_count += 1
-            raise TimeoutError(f"Failed to acquire lock on {self.resource} after {self.timeout_seconds}s")
+            raise LockTimeoutError(
+                f"Failed to acquire lock on {self.resource} after {self.timeout_seconds}s"
+            )
 
         def __exit__(self, exc_type, exc_val, exc_tb):
             """Exit the context, releasing the lock."""

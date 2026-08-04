@@ -12,6 +12,7 @@ from fastapi.routing import APIRouter
 from sqlmodel import Session
 
 from adapt.cache import get_cache, set_cache, invalidate_cache
+from ..locks import LockConflictError, LockTimeoutError
 from ..models import QueryParams
 from ..utils import build_ui_links
 from ..utils.query import apply_filter, apply_sort, apply_pagination
@@ -439,7 +440,7 @@ class DatasetPlugin(Plugin):
                 self._write_rows(resource, existing_rows, header)
 
                 return {"success": True}
-        except RuntimeError as e:
+        except (LockConflictError, LockTimeoutError) as e:
             logger.warning("Write failed for %s: %s", resource.path, str(e))
             raise HTTPException(status_code=409, detail=str(e))
 
