@@ -121,6 +121,21 @@
         return { ...headers, 'X-CSRF-Token': token };
     }
 
+    function mutationError(result, fallback) {
+        if (result && typeof result.detail === 'string' && result.detail.trim()) {
+            return result.detail;
+        }
+        if (result && Array.isArray(result.detail)) {
+            const messages = result.detail
+                .map(item => item && item.msg)
+                .filter(Boolean);
+            if (messages.length) {
+                return messages.join('; ');
+            }
+        }
+        return fallback;
+    }
+
     $(document).ready(function () {
         dataTable = $('#dataTable').DataTable({
             serverSide: false,
@@ -189,7 +204,7 @@
                     document.getElementById('createForm').reset();
                     dataTable.ajax.reload();
                 } else {
-                    alert('Error creating record');
+                    alert(mutationError(result, 'Error creating record'));
                 }
             })
             .catch(error => {
@@ -233,7 +248,7 @@
                     document.querySelector('#editModal [data-bs-dismiss="modal"]').click();
                     dataTable.ajax.reload();
                 } else {
-                    alert('Error updating record');
+                    alert(mutationError(result, 'Error updating record'));
                 }
             })
             .catch(error => {
@@ -254,7 +269,7 @@
                     if (result.success) {
                         dataTable.ajax.reload();
                     } else {
-                        alert('Error deleting record');
+                        alert(mutationError(result, 'Error deleting record'));
                     }
                 })
                 .catch(error => {

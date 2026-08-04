@@ -111,8 +111,12 @@ curl -X DELETE -H "X-API-Key: your-key" \
 curl -H "X-API-Key: your-key" http://localhost:8000/schema/products/
 ```
 
-Schemas do not validate dataset writes. See
-[Known Limitations](known_limitations.md#schema-validation).
+Adapt validates supplied create and update values against this schema. An
+unknown column or incompatible value returns `422` without changing the file.
+Numeric and boolean values entered in the generated UI are normalized from
+their form strings. Blank values remain permitted. When validation fails in
+the generated UI, its error message identifies the column, expected type, and
+received type.
 
 ## Permissions and Access Control
 

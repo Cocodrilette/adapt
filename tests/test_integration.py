@@ -212,6 +212,30 @@ def test_api_create(superuser_client):
     assert len(data) == 3
     assert data[2]["name"] == "Charlie"
 
+
+@pytest.mark.parametrize(
+    ("row", "detail"),
+    [
+        (
+            {"name": "Charlie", "age": "not-an-integer"},
+            "Schema validation failed: column 'age': expected integer, received string",
+        ),
+        (
+            {"name": "Charlie", "age": 35, "ignored": "value"},
+            "Schema validation failed: unknown column 'ignored'",
+        ),
+    ],
+)
+def test_api_create_rejects_values_that_violate_schema(superuser_client, row, detail):
+    response = superuser_client.post(
+        "/api/data",
+        json={"action": "create", "data": [row]},
+    )
+
+    assert response.status_code == 422
+    assert response.json() == {"detail": detail}
+    assert [row["name"] for row in superuser_client.get("/api/data").json()] == ["Alice", "Bob"]
+
 def test_api_update(superuser_client):
     update_data = {"_row_id": 1, "age": 31}
     response = superuser_client.patch("/api/data", json={"action": "update", "data": update_data})

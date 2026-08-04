@@ -16,14 +16,6 @@ Adapt. This restriction prevents formula and workbook-feature loss.
 
 ## Dataset Writes
 
-### Schema Validation
-
-Dataset writes are not validated against inferred or companion schemas. These
-schemas control serialization and UI columns. They are not write validators.
-
-If the backing file requires a strict schema, validate values before a write.
-A custom plugin can implement additional validation.
-
 ### Exhausted Lock Conflicts
 
 Adapt retries lock acquisition with exponential backoff. If all retries fail,

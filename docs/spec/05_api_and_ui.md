@@ -96,7 +96,10 @@ errors and FastAPI request errors use a `detail` member.
 ```
 
 FastAPI validation errors return `422` with structured items in `detail`.
-Dataset values are not validated against inferred or companion schemas.
+Dataset schema validation errors also return `422`; their `detail` string names
+the column, expected type, and received type. The generated dataset UI displays
+this detail for failed create and update operations. Validation runs before the
+resource lock is acquired or the backing file is changed.
 
 Some immediate lock conflicts return `409`. An exhausted lock retry can
 surface as a server error because the timeout is not converted to `409`.

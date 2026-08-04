@@ -110,9 +110,13 @@ Mutations must:
 - Use `lock_manager` to avoid unsafe concurrent writes
 - Invalidate cache after successful changes
 
-The schema returned by `schema()` supplies serialization hints and UI column
-metadata. Dataset mutation code does not use it to validate writes, including
-when the schema is hand-maintained.
+The schema returned by `schema()` supplies serialization hints, UI column
+metadata, and validation rules for the shared dataset mutation path. Create and
+update fields use the common `string`, `integer`, `number`, and `boolean` types
+(plus corresponding pandas type names). Numeric and boolean strings are
+normalized; blank strings and `null` are permitted. Unknown columns or
+incompatible values return `422` before the resource is locked or written.
+Custom schema types without defined validation semantics remain metadata only.
 
 `filter_for_user()` is applied on dataset reads and is available as a
 row-filtering extension point. The shared mutation implementation does not

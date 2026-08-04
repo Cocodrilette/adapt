@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 from pathlib import Path
 from typing import Any, Sequence, Optional
 
@@ -121,6 +122,95 @@ def _build_columns(header: Sequence[str], sample: Sequence[str | None]) -> dict[
         sample_value = sample[idx] if idx < len(sample) else None
         columns[column] = {"type": _guess_type(sample_value)}
     return columns
+
+
+def _validation_error(detail: str) -> HTTPException:
+    """Return the API error used for invalid dataset mutation values."""
+    return HTTPException(status_code=422, detail=f"Schema validation failed: {detail}")
+
+
+def _value_type(value: Any) -> str:
+    """Return a JSON-oriented type name for a rejected mutation value."""
+    if value is None:
+        return "null"
+    if isinstance(value, bool):
+        return "boolean"
+    if isinstance(value, str):
+        return "string"
+    if isinstance(value, int):
+        return "integer"
+    if isinstance(value, float):
+        return "number"
+    if isinstance(value, list):
+        return "array"
+    if isinstance(value, dict):
+        return "object"
+    return type(value).__name__
+
+
+def _type_validation_error(column: str, expected: str, value: Any) -> HTTPException:
+    """Describe a schema type mismatch in terms useful to API and UI users."""
+    return _validation_error(
+        f"column {column!r}: expected {expected}, received {_value_type(value)}"
+    )
+
+
+def _coerce_schema_value(column: str, value: Any, declared_type: Any) -> Any:
+    """Validate and normalize one value using Adapt's lightweight schema types.
+
+    Empty values remain valid because inferred schemas do not describe nullability
+    and file-backed datasets commonly contain blank cells. Numeric and boolean
+    strings are accepted so writes from the generated HTML form follow the same
+    contract as JSON API writes.
+    """
+    if value is None or value == "":
+        return value
+
+    schema_type = str(declared_type).lower()
+    if schema_type == "string" or schema_type in {"str", "object", "category"}:
+        if isinstance(value, str):
+            return value
+        raise _type_validation_error(column, "string", value)
+
+    if schema_type == "integer" or schema_type.startswith(("int", "uint")):
+        if isinstance(value, bool):
+            raise _type_validation_error(column, "integer", value)
+        if isinstance(value, int):
+            return value
+        if isinstance(value, str):
+            try:
+                return int(value.strip())
+            except ValueError:
+                pass
+        raise _type_validation_error(column, "integer", value)
+
+    if schema_type == "number" or schema_type.startswith(("float", "decimal")) or schema_type == "double":
+        if isinstance(value, bool):
+            raise _type_validation_error(column, "number", value)
+        try:
+            converted = float(value)
+        except (TypeError, ValueError):
+            raise _type_validation_error(column, "number", value) from None
+        if not math.isfinite(converted):
+            raise _type_validation_error(column, "finite number", value)
+        return value if isinstance(value, (int, float)) else converted
+
+    if schema_type in {"boolean", "bool"}:
+        if isinstance(value, bool):
+            return value
+        if value in (0, 1):
+            return bool(value)
+        if isinstance(value, str):
+            normalized = value.strip().lower()
+            if normalized in {"true", "1", "yes"}:
+                return True
+            if normalized in {"false", "0", "no"}:
+                return False
+        raise _type_validation_error(column, "boolean", value)
+
+    # Keep custom and future schema types usable until Adapt defines their
+    # validation semantics.
+    return value
 
 
 class DatasetPlugin(Plugin):
@@ -304,7 +394,7 @@ class DatasetPlugin(Plugin):
             raise HTTPException(status_code=405, detail=detail)
         
         action = data.get("action")
-        payload = data.get("data", [])
+        payload = self._validate_write(resource, action, data.get("data", []))
         
         # Determine lock owner
         owner = getattr(request.state, "user", None)
@@ -352,6 +442,63 @@ class DatasetPlugin(Plugin):
         except RuntimeError as e:
             logger.warning("Write failed for %s: %s", resource.path, str(e))
             raise HTTPException(status_code=409, detail=str(e))
+
+    def _validate_write(self, resource: ResourceDescriptor, action: Any, payload: Any) -> Any:
+        """Validate a mutation envelope and its supplied values before locking."""
+        if action not in {"create", "update", "delete"}:
+            raise _validation_error("action must be create, update, or delete")
+
+        if action == "create":
+            if not isinstance(payload, list) or not all(isinstance(row, dict) for row in payload):
+                raise _validation_error("create data must be a list of objects")
+            rows = payload
+        else:
+            if not isinstance(payload, dict):
+                raise _validation_error(f"{action} data must be an object")
+            rows = [payload]
+
+        if action in {"update", "delete"}:
+            row_id = payload.get("_row_id")
+            if isinstance(row_id, bool):
+                raise _validation_error("_row_id must be a positive integer")
+            try:
+                normalized_row_id = int(row_id)
+            except (TypeError, ValueError):
+                raise _validation_error("_row_id must be a positive integer") from None
+            if normalized_row_id < 1:
+                raise _validation_error("_row_id must be a positive integer")
+            payload = {**payload, "_row_id": normalized_row_id}
+            rows = [payload]
+
+        if action == "delete":
+            unknown = set(payload) - {"_row_id"}
+            if unknown:
+                raise _validation_error(f"unknown column {sorted(unknown)[0]!r}")
+            return payload
+
+        columns = self.schema(resource).get("columns", {})
+        if not isinstance(columns, dict):
+            return payload
+
+        validated_rows: list[dict[str, Any]] = []
+        for row in rows:
+            allowed = set(columns)
+            if action == "update":
+                allowed.add("_row_id")
+            unknown = set(row) - allowed
+            if unknown:
+                raise _validation_error(f"unknown column {sorted(unknown)[0]!r}")
+
+            validated = dict(row)
+            for column, value in row.items():
+                if column == "_row_id":
+                    continue
+                definition = columns.get(column, {})
+                if isinstance(definition, dict) and definition.get("type") is not None:
+                    validated[column] = _coerce_schema_value(column, value, definition["type"])
+            validated_rows.append(validated)
+
+        return validated_rows if action == "create" else validated_rows[0]
 
     @staticmethod
     def _inject_csrf_bootstrap(template_content: str) -> str:
@@ -402,6 +549,25 @@ class DatasetPlugin(Plugin):
         if "</body>" in template_content:
             return template_content.replace("</body>", script + "\n</body>")
         return template_content + "\n" + script
+
+    @staticmethod
+    def _inject_mutation_error_details(template_content: str) -> str:
+        """Upgrade generic alerts in preserved, previously generated UI files.
+
+        Companion templates are intentionally not overwritten because users may
+        customize them. Replacing only the first standard alert for each action
+        updates the response-handling branch while leaving the later network-error
+        fallback and all other custom template content intact.
+        """
+        for action in ("creating", "updating", "deleting"):
+            fallback = f"Error {action} record"
+            old = f"alert('{fallback}');"
+            new = (
+                "alert(result && typeof result.detail === 'string' "
+                f"? result.detail : '{fallback}');"
+            )
+            template_content = template_content.replace(old, new, 1)
+        return template_content
 
     def get_route_configs(self, descriptor: ResourceDescriptor) -> list[tuple[str, APIRouter]]:
         """Return route configs for dataset: api, schema, ui."""
@@ -525,6 +691,7 @@ class DatasetPlugin(Plugin):
                 with descriptor.ui_path.open('r', encoding='utf-8') as f:
                     template_content = f.read()
                 template_content = self._inject_csrf_bootstrap(template_content)
+                template_content = self._inject_mutation_error_details(template_content)
                 template = request.app.state.templates.env.from_string(template_content)
                 return HTMLResponse(template.render(**context))
             else:

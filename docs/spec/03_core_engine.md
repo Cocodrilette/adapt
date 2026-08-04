@@ -39,7 +39,7 @@ identifiers are one-based positions named `_row_id`.
 
 Schema inference uses `string`, `integer`, `number`, and `boolean` labels for
 CSV and Excel samples. These labels control response conversion and UI columns.
-They do not validate mutation data.
+They also validate supplied create and update values before a file is changed.
 
 Each Excel sheet has a `sub_namespace`. For example, the `People` sheet in
 `staff.xlsx` has these extensionless routes:
@@ -68,7 +68,13 @@ Generated schema files contain a `generated_by` marker. Adapt can refresh a
 marked schema after the derived shape changes. Adapt preserves a hand-maintained
 schema without this marker when its content differs from the derived schema.
 
-Neither a generated schema nor a hand-maintained schema validates writes.
+Generated and hand-maintained schemas validate supplied create and update
+fields. Adapt rejects unknown columns and values incompatible with the common
+`string`, `integer`, `number`, and `boolean` types with `422`. It accepts and
+normalizes numeric and boolean strings for compatibility with the generated
+HTML form. Blank strings and `null` are permitted because the schema format
+does not specify required columns or nullability. Unknown custom types remain
+metadata and are not validated.
 
 ```json
 {

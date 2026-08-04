@@ -123,14 +123,14 @@ Adapt uses action-based mutation payloads at the collection endpoint.
 Notes:
 
 - Dataset mutations are row-oriented and use `_row_id`.
-- FastAPI requires the request body to be a JSON object, but dataset values
-  are not validated against the inferred or companion schema.
-  Unknown or incompatible values can therefore be written to the backing file.
+- Create and update values are validated against the inferred or companion
+  schema before Adapt locks or changes the backing file. Unknown columns and
+  incompatible values return `422`.
+- Numeric and boolean strings from the generated HTML form are accepted and
+  normalized. Blank strings and `null` remain valid because Adapt schemas do
+  not describe nullability or required columns.
 - In read-only mode, mutation endpoints return `405`.
 - Legacy `.xls` resources are always read-only and return `405` for mutations.
-
-See [Known Limitations](known_limitations.md#schema-validation) for the effect
-of this validation limit.
 
 ## Schema Endpoint
 
@@ -140,8 +140,19 @@ Returns the inferred or companion schema.
 
 For CSV and Excel resources, inference assigns only `string`, `integer`,
 `number`, or `boolean`. These types control response serialization and the
-default dataset UI columns; they are descriptive metadata, not write
-validators. A hand-maintained companion schema has the same limitation.
+default dataset UI columns. They also validate values supplied by create and
+update mutations. Adapt validates the common Parquet type names that correspond
+to these four types. An unrecognized custom type remains metadata only.
+
+The schema format does not currently express required columns or nullability.
+Adapt validates fields that the caller supplies and permits blank or `null`
+values. A validation failure uses status `422`, for example:
+
+```json
+{
+  "detail": "Schema validation failed: column 'price': expected number, received string"
+}
+```
 
 Example:
 

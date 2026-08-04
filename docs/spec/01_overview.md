@@ -16,8 +16,8 @@ Place files into a directory, and Adapt generates:
 * CRUD operations for CSV, XLSX, and Parquet datasets; legacy XLS files are read-only
 * Direct routes for registered content, generic files, and media
 * Inline editing through `PATCH`
-* Inferred schemas that control serialization and UI columns, but do not
-  validate mutations
+* Inferred schemas that control serialization and UI columns and validate
+  supplied create and update values
 * Serialized writes using one lock record per resource, retry with exponential
   backoff, and atomic target replacement where supported
 * Generated schema and UI companion files for datasets

@@ -115,6 +115,29 @@ def test_form_inputs_use_index_based_ids_and_raw_names():
     assert 'name="say &#34;hi&#34;"' in html or 'name="say &quot;hi&quot;"' in html
 
 
+def test_mutation_failures_display_server_detail():
+    script = _script_body(_render(["name", "age"], readonly=False))
+
+    assert "alert(mutationError(result, 'Error creating record'))" in script
+    assert "alert(mutationError(result, 'Error updating record'))" in script
+    assert "typeof result.detail === 'string'" in script
+
+
+def test_preserved_legacy_template_gets_detailed_mutation_errors():
+    legacy = """
+    .then(result => {
+        if (result.success) { reload(); }
+        else { alert('Error creating record'); }
+    })
+    .catch(error => { alert('Error creating record'); });
+    """
+
+    upgraded = dataset_plugin.DatasetPlugin._inject_mutation_error_details(legacy)
+
+    assert "typeof result.detail === 'string'" in upgraded
+    assert upgraded.count("alert('Error creating record');") == 1
+
+
 def test_script_block_cannot_be_broken_out_of():
     html = _render(["</script><script>alert(1)</script>"])
     assert "<script>alert(1)</script>" not in html
