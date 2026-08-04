@@ -39,6 +39,9 @@ dependencies = [
     "moviepy",
     "pillow",
     "python-json-logger",
+    # fastparquet 2026.5.0 uses generic datetime/timedelta units that NumPy
+    # 2.5 deprecates. Remove this cap when fastparquet adopts explicit units.
+    "numpy<2.5",
     "pandas",
     "fastparquet",
     "mcp>=1.28,<2",

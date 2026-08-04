@@ -3,7 +3,7 @@
 MCP's streamable-HTTP transport needs a real ASGI event loop serving SSE;
 `fastapi.testclient.TestClient` doesn't speak the protocol. These tests spin
 up the app with `uvicorn.Server` on an ephemeral port in a background thread
-and drive it with `mcp.client.streamable_http.streamablehttp_client` +
+and drive it with `mcp.client.streamable_http.streamable_http_client` +
 `mcp.ClientSession` — the SDK's own documented pattern for testing a
 streamable-HTTP server.
 """
@@ -15,12 +15,13 @@ import socket
 import threading
 import time
 
+import httpx
 import pytest
 import uvicorn
 from sqlmodel import Session, select
 
 from mcp import ClientSession
-from mcp.client.streamable_http import streamablehttp_client
+from mcp.client.streamable_http import streamable_http_client
 
 from adapt.api_keys import create_api_key_record
 from adapt.app import create_app
@@ -103,17 +104,21 @@ def _make_user_with_key(app, username, *, superuser=False, reads=(), writes=()):
 
 async def _call(base_url, headers, tool, arguments=None):
     """Call a single MCP tool over streamable-HTTP and return the CallToolResult."""
-    async with streamablehttp_client(f"{base_url}/mcp", headers=headers) as (read, write, _):
-        async with ClientSession(read, write) as session:
-            await session.initialize()
-            return await session.call_tool(tool, arguments or {})
+    timeout = httpx.Timeout(30, read=300)
+    async with httpx.AsyncClient(headers=headers, timeout=timeout, follow_redirects=True) as http_client:
+        async with streamable_http_client(f"{base_url}/mcp", http_client=http_client) as (read, write, _):
+            async with ClientSession(read, write) as session:
+                await session.initialize()
+                return await session.call_tool(tool, arguments or {})
 
 
 async def _list_tools(base_url, headers):
-    async with streamablehttp_client(f"{base_url}/mcp", headers=headers) as (read, write, _):
-        async with ClientSession(read, write) as session:
-            await session.initialize()
-            return await session.list_tools()
+    timeout = httpx.Timeout(30, read=300)
+    async with httpx.AsyncClient(headers=headers, timeout=timeout, follow_redirects=True) as http_client:
+        async with streamable_http_client(f"{base_url}/mcp", http_client=http_client) as (read, write, _):
+            async with ClientSession(read, write) as session:
+                await session.initialize()
+                return await session.list_tools()
 
 
 def _result_json(result):
