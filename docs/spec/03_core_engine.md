@@ -8,8 +8,9 @@
 
 Adapt recursively scans the document root. It ignores hidden paths, `.adapt`,
 virtual environments, `__pycache__`, and `node_modules`. Discovery selects a
-plugin from `AdaptConfig.plugin_registry` by file extension. It does not call
-`Plugin.detect()`.
+candidate plugin from `AdaptConfig.plugin_registry` by file extension. It then
+calls `Plugin.detect()`. Discovery loads the file only when this method returns
+`True`.
 
 The default registry contains these mappings:
 

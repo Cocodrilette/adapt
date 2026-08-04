@@ -82,9 +82,10 @@ key without a session cookie to avoid CSRF handling.
 
 ### Files Not Appearing
 
-- Confirm file extension is supported by plugin registry
-- Confirm file is under docroot
-- Restart server after adding files
+- Make sure that the plugin registry contains the file extension.
+- Make sure that the selected plugin detects the file.
+- Make sure that the file is under docroot.
+- Restart the server after you add files.
 
 Supported built-in extensions are:
 
@@ -167,6 +168,9 @@ Verify class path format in `plugin_registry`:
 ```
 
 Current loader expects dotted class paths, not `module:path` syntax.
+
+Make sure that the custom plugin `detect(path)` method returns `True` for the
+file. Adapt does not call `load(path)` when detection rejects the file.
 
 ### Import Errors
 

@@ -7,8 +7,8 @@
 ## 1. Plugin selection
 
 `AdaptConfig.plugin_registry` maps file extensions to plugin classes. Discovery
-uses this mapping to select a class. The `detect()` method remains part of the
-interface, but discovery does not call it.
+uses this mapping to select a candidate class. It creates the plugin and calls
+`detect(path)`. A `False` result rejects the file before `load(path)` runs.
 
 The built-in plugin categories are:
 
@@ -46,6 +46,9 @@ class Plugin:
 `ui_path`, `options_path`, and `metadata`.
 
 ## 3. Method behavior
+
+`detect()` decides whether the candidate plugin accepts a file. The registry
+must contain the file extension before discovery calls this method.
 
 `load()` returns one descriptor or a sequence of descriptors. The Excel plugin
 returns one descriptor for each sheet.

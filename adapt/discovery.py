@@ -101,6 +101,14 @@ def discover_resources(root: Path, config: AdaptConfig) -> list[DatasetResource]
         plugin_cls = config.get_plugin_factory(ext)
         plugin: Plugin = plugin_cls()
 
+        if not plugin.detect(path):
+            logger.debug(
+                "Plugin %s rejected file during detection: %s",
+                plugin_cls.__name__,
+                path,
+            )
+            continue
+
         loaded = plugin.load(path)
         if isinstance(loaded, ResourceDescriptor):
             descriptors = [loaded]

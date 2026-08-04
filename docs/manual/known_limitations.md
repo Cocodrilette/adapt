@@ -14,16 +14,6 @@ Legacy `.xls` sheets are read-only. A `POST`, `PATCH`, or `DELETE` request
 returns `405`. Convert the workbook to `.xlsx` before you modify it through
 Adapt. This restriction prevents formula and workbook-feature loss.
 
-## Plugin Interface
-
-### Plugin Detection
-
-`Plugin.detect()` is an abstract interface method. Resource discovery selects
-plugins from `plugin_registry` by file extension and does not call `detect()`.
-
-Custom plugins must implement this unused method. Treat the registry mapping
-as the current plugin-selection mechanism.
-
 ## Dataset Writes
 
 ### Schema Validation

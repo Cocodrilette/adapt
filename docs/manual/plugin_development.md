@@ -47,15 +47,15 @@ Optional extension points:
 
 ## How Discovery Works
 
-Discovery scans the document root and selects plugins by file extension through `plugin_registry`.
+Discovery scans the document root. The `plugin_registry` entry for the file
+extension selects a candidate plugin.
 
 Important behavior:
 
-- Extension mapping is authoritative.
-- `detect()` remains part of the plugin interface, but resource discovery does not call it.
-- A registry entry selects the plugin class for each discovered extension.
-
-See [Known Limitations](known_limitations.md#plugin-detection).
+- An extension without a registry entry is ignored.
+- Discovery creates the candidate plugin and calls `detect(path)`.
+- If `detect(path)` returns `False`, discovery ignores the file.
+- If `detect(path)` returns `True`, discovery calls `load(path)`.
 
 ## Plugin Registration
 

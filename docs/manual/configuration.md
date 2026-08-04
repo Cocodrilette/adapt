@@ -153,6 +153,9 @@ Excel plugin reads `.xlsx` and `.xls` files. Legacy `.xls` resources are
 read-only. Unregistered extensions are not discovered or served.
 See [Known Limitations](known_limitations.md#legacy-excel-files).
 
+For a registered extension, the registry selects a candidate plugin. Discovery
+calls its `detect(path)` method and loads the file only after a `True` result.
+
 The generic `FilePlugin` serves these registered types directly:
 
 - Text: `.txt`, `.pdf`, `.json`, `.xml`, `.svg`
@@ -194,6 +197,7 @@ resource.
 2. Unknown top-level key
 3. Wrong type for `port`, `readonly`, or `debug`
 4. Invalid plugin class path
-5. TLS cert/key only partially set
+5. A plugin `detect(path)` method that rejects the file
+6. TLS cert/key only partially set
 
 Manual navigation: [Previous: MCP Guide](mcp_guide.md) | [Index](index.md) | [Next: Plugin Development](plugin_development.md)

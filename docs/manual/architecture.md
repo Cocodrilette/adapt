@@ -8,7 +8,7 @@ Adapt is a FastAPI application that:
 
 1. Loads configuration from `DOCROOT/.adapt/conf.json`
 2. Initializes SQLite-backed storage and cache
-3. Discovers resources in docroot using extension-to-plugin mapping
+3. Selects candidate plugins by extension and uses plugin detection to accept resources
 4. Generates API/UI/schema/media routes per discovered resource
 5. Enforces authentication and authorization through dependencies
 
@@ -36,15 +36,12 @@ Flow:
 
 - Discovery scans docroot
 - Extension determines plugin class via `plugin_registry`
+- Plugin `detect()` accepts or rejects the file
 - Plugin `load()` returns one or more resource descriptors
 - Discovery assigns schema, UI, and options companion paths
 - Plugin `apply_options()` can modify each descriptor
 - Plugins can generate companion files under `.adapt/`
 - Route configs from plugin are mounted into the app
-
-The `detect()` method is part of the plugin interface. Current resource
-discovery does not call it because the registry extension selects the plugin.
-See [Known Limitations](known_limitations.md#plugin-detection).
 
 ### Data and Security Layer
 

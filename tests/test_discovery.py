@@ -2,6 +2,7 @@ import pytest
 from pathlib import Path
 from adapt.discovery import discover_resources, should_ignore, DatasetResource
 from adapt.config import AdaptConfig
+from adapt.plugins.base import ResourceDescriptor
 from adapt.plugins.csv_plugin import CsvPlugin
 
 @pytest.fixture
@@ -78,3 +79,29 @@ def test_discover_resources_unsupported_extension(tmp_path, mock_config):
     (tmp_path / "data.txt").touch()
     resources = discover_resources(tmp_path, mock_config)
     assert len(resources) == 0
+
+
+def test_discover_resources_calls_plugin_detect_before_load(tmp_path, mock_config, monkeypatch):
+    candidate = tmp_path / "data.csv"
+    candidate.write_text("not,really,csv")
+
+    class RejectingPlugin:
+        detect_calls = []
+        load_calls = []
+
+        def detect(self, path):
+            self.detect_calls.append(path)
+            return False
+
+        def load(self, path):
+            self.load_calls.append(path)
+            return ResourceDescriptor(path=path, resource_type="test")
+
+    monkeypatch.setattr(mock_config, "get_plugin_factory", lambda extension: RejectingPlugin)
+
+    resources = discover_resources(tmp_path, mock_config)
+
+    assert resources == []
+    assert RejectingPlugin.detect_calls == [candidate]
+    assert RejectingPlugin.load_calls == []
+    assert not (tmp_path / ".adapt").exists()
