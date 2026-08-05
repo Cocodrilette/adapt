@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Adapt — Your files are already an API</title>
+<title>Adapt — Upload files. Get an API.</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500&family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap" rel="stylesheet">
@@ -17,10 +17,10 @@
   --chalk: #EDE8F4;
   --slate: #857FA0;
   --signal: #F0A435;
-  --signal-glow: rgba(240, 164, 53, 0.15);
+  --signal-glow: rgba(240, 164, 53, 0.13);
   --trace: #6E56F0;
-  --trace-glow: rgba(110, 86, 240, 0.12);
-  --border: rgba(133, 127, 160, 0.15);
+  --trace-glow: rgba(110, 86, 240, 0.1);
+  --border: rgba(133, 127, 160, 0.14);
   --radius: 8px;
   --radius-lg: 14px;
 }
@@ -38,29 +38,21 @@ body {
   min-height: 100vh;
   background:
     radial-gradient(ellipse 80% 60% at 50% 0%, rgba(110, 86, 240, 0.06), transparent),
-    radial-gradient(ellipse 50% 40% at 80% 60%, rgba(240, 164, 53, 0.04), transparent);
+    radial-gradient(ellipse 50% 30% at 80% 70%, rgba(240, 164, 53, 0.04), transparent);
 }
 
 ::selection { background: var(--signal); color: var(--void); }
 
 h1, h2, h3 { font-family: 'DM Mono', 'JetBrains Mono', monospace; font-weight: 400; letter-spacing: -0.02em; }
-h1 { font-size: clamp(2.5rem, 6vw, 5.5rem); line-height: 1.08; }
+h1 { font-size: clamp(2.5rem, 6vw, 5.5rem); line-height: 1.06; }
 h2 { font-size: clamp(1.75rem, 3.5vw, 2.75rem); line-height: 1.15; }
 h3 { font-size: 1.125rem; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; color: var(--slate); }
 
 a { color: var(--trace); text-decoration: none; transition: color 0.2s; }
 a:hover { color: var(--signal); }
-a:focus-visible {
-  outline: 2px solid var(--signal);
-  outline-offset: 3px;
-  border-radius: 2px;
-}
+a:focus-visible { outline: 2px solid var(--signal); outline-offset: 3px; border-radius: 2px; }
 
-.container {
-  max-width: 1180px;
-  margin: 0 auto;
-  padding: 0 2rem;
-}
+.container { max-width: 1120px; margin: 0 auto; padding: 0 2rem; }
 
 .logo {
   font-family: 'DM Mono', monospace;
@@ -76,8 +68,7 @@ a:focus-visible {
 .logo::before {
   content: '';
   display: inline-block;
-  width: 10px;
-  height: 10px;
+  width: 10px; height: 10px;
   background: var(--signal);
   border-radius: 2px;
 }
@@ -97,10 +88,9 @@ nav {
 nav .nav-links { display: flex; align-items: center; gap: 2rem; }
 nav .nav-links a {
   color: var(--slate);
-  font-size: 0.9375rem;
   font-family: 'DM Mono', monospace;
   font-size: 0.8125rem;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 nav .nav-cta {
@@ -118,7 +108,7 @@ nav .nav-cta {
 nav .nav-cta:hover { background: #F8B84D; box-shadow: 0 0 20px var(--signal-glow); color: var(--void); }
 
 .hero {
-  padding: 6rem 0 4rem;
+  padding: 6rem 0 3rem;
   text-align: center;
   position: relative;
   overflow: hidden;
@@ -126,19 +116,14 @@ nav .nav-cta:hover { background: #F8B84D; box-shadow: 0 0 20px var(--signal-glow
 .hero::before {
   content: '';
   position: absolute;
-  top: 0;
+  top: -10%;
   left: 50%;
   transform: translateX(-50%);
-  width: 600px;
-  height: 600px;
-  background: radial-gradient(circle, rgba(110, 86, 240, 0.08), transparent 70%);
+  width: 700px; height: 700px;
+  background: radial-gradient(circle, rgba(110, 86, 240, 0.07), transparent 65%);
   pointer-events: none;
 }
-.hero h1 {
-  position: relative;
-  z-index: 1;
-  margin-bottom: 1.5rem;
-}
+.hero h1 { position: relative; z-index: 1; margin-bottom: 1.5rem; }
 .hero h1 .highlight {
   color: var(--signal);
   position: relative;
@@ -146,10 +131,8 @@ nav .nav-cta:hover { background: #F8B84D; box-shadow: 0 0 20px var(--signal-glow
 .hero h1 .highlight::after {
   content: '';
   position: absolute;
-  bottom: 4px;
-  left: 0;
-  width: 100%;
-  height: 3px;
+  bottom: 5px; left: 0;
+  width: 100%; height: 3px;
   background: var(--signal);
   opacity: 0.3;
   border-radius: 2px;
@@ -157,33 +140,27 @@ nav .nav-cta:hover { background: #F8B84D; box-shadow: 0 0 20px var(--signal-glow
 .hero .subtitle {
   font-size: clamp(1rem, 2vw, 1.25rem);
   color: var(--slate);
-  max-width: 560px;
+  max-width: 540px;
   margin: 0 auto 2.5rem;
   line-height: 1.7;
 }
-
 .hero-actions {
-  display: flex;
-  gap: 1rem;
-  justify-content: center;
-  flex-wrap: wrap;
+  display: flex; gap: 1rem;
+  justify-content: center; flex-wrap: wrap;
   margin-bottom: 4rem;
 }
+
 .btn-primary {
   background: var(--signal);
   color: var(--void);
   padding: 0.875rem 2rem;
   border-radius: var(--radius);
   font-family: 'DM Sans', sans-serif;
-  font-size: 1rem;
-  font-weight: 700;
-  border: none;
-  cursor: pointer;
+  font-size: 1rem; font-weight: 700;
+  border: none; cursor: pointer;
   transition: background 0.2s, box-shadow 0.2s, transform 0.15s;
   text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
+  display: inline-flex; align-items: center; gap: 0.5rem;
 }
 .btn-primary:hover { background: #F8B84D; box-shadow: 0 0 24px var(--signal-glow); transform: translateY(-1px); color: var(--void); }
 .btn-primary:focus-visible { outline: 2px solid var(--signal); outline-offset: 3px; }
@@ -199,77 +176,134 @@ nav .nav-cta:hover { background: #F8B84D; box-shadow: 0 0 20px var(--signal-glow
   cursor: pointer;
   transition: border-color 0.2s, background 0.2s;
   text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
+  display: inline-flex; align-items: center; gap: 0.5rem;
 }
 .btn-secondary:hover { border-color: var(--trace); background: var(--trace-glow); color: var(--chalk); }
 .btn-secondary:focus-visible { outline: 2px solid var(--signal); outline-offset: 3px; }
 
-.terminal {
-  max-width: 720px;
+.dashboard {
+  max-width: 840px;
   margin: 0 auto;
-  background: #0D0B18;
-  border: 1px solid rgba(110, 86, 240, 0.2);
+  background: var(--surface);
+  border: 1px solid rgba(110, 86, 240, 0.18);
   border-radius: var(--radius-lg);
   overflow: hidden;
-  box-shadow: 0 0 60px rgba(110, 86, 240, 0.08), 0 20px 60px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 0 80px rgba(110, 86, 240, 0.06), 0 24px 64px rgba(0, 0, 0, 0.5);
   position: relative;
   z-index: 1;
 }
-.terminal-header {
+.dashboard-header {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1rem;
-  background: rgba(19, 16, 36, 0.6);
+  justify-content: space-between;
+  padding: 0.75rem 1.25rem;
+  background: rgba(19, 16, 36, 0.5);
   border-bottom: 1px solid var(--border);
 }
-.terminal-dot { width: 10px; height: 10px; border-radius: 50%; }
-.terminal-dot.red { background: #FF5F57; }
-.terminal-dot.yellow { background: #FEBC2E; }
-.terminal-dot.green { background: #28C840; }
-.terminal-title {
+.dashboard-tabs {
+  display: flex;
+  gap: 0.25rem;
+}
+.dashboard-tab {
   font-family: 'DM Mono', monospace;
   font-size: 0.75rem;
   color: var(--slate);
-  margin-left: 0.5rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 4px;
+  cursor: default;
 }
-.terminal-body {
-  padding: 1.5rem;
+.dashboard-tab.active { background: rgba(110, 86, 240, 0.15); color: var(--trace); }
+.dashboard-actions { display: flex; gap: 0.5rem; }
+.dashboard-action {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.7rem;
+  color: var(--slate);
+  padding: 0.35rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: transparent;
+  cursor: default;
+}
+.dashboard-table {
+  width: 100%;
+  border-collapse: collapse;
   font-family: 'JetBrains Mono', 'DM Mono', monospace;
-  font-size: 0.8125rem;
-  line-height: 1.8;
-  min-height: 240px;
+  font-size: 0.8rem;
 }
-.terminal-body .line { display: flex; align-items: baseline; gap: 0.5rem; opacity: 0; animation: fadeInLine 0.3s ease forwards; }
-.terminal-body .line:nth-child(1) { animation-delay: 0.3s; }
-.terminal-body .line:nth-child(2) { animation-delay: 1.5s; }
-.terminal-body .line:nth-child(3) { animation-delay: 2.2s; }
-.terminal-body .line:nth-child(4) { animation-delay: 2.7s; }
-.terminal-body .line:nth-child(5) { animation-delay: 3.2s; }
-.terminal-body .line:nth-child(6) { animation-delay: 3.7s; }
-.terminal-body .line:nth-child(7) { animation-delay: 4.2s; }
-.terminal-body .line:nth-child(8) { animation-delay: 4.7s; }
-.terminal-body .line:nth-child(9) { animation-delay: 5.0s; }
-.terminal-body .prompt { color: var(--trace); user-select: none; }
-.terminal-body .cmd { color: var(--chalk); }
-.terminal-body .file { color: var(--signal); }
-.terminal-body .arrow { color: var(--slate); margin: 0 0.25rem; }
-.terminal-body .endpoint { color: var(--trace); }
-.terminal-body .check { color: #28C840; }
-.terminal-body .dim { color: var(--slate); }
-.terminal-body .blink { animation: blink 1s step-end infinite; }
-.terminal-body .success { color: #28C840; font-weight: 500; }
+.dashboard-table th {
+  text-align: left;
+  padding: 0.7rem 1.25rem;
+  font-weight: 500;
+  color: var(--slate);
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--border);
+  background: rgba(19, 16, 36, 0.3);
+}
+.dashboard-table td {
+  padding: 0.75rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.dashboard-table tr { transition: background 0.2s; }
+.dashboard-table tr:hover td { background: rgba(110, 86, 240, 0.04); }
+.dashboard-table tr:last-child td { border-bottom: none; }
+.dashboard-table .filename {
+  display: flex; align-items: center; gap: 0.5rem;
+  color: var(--chalk);
+  font-weight: 500;
+}
+.dashboard-table .file-icon {
+  font-size: 0.85rem;
+  opacity: 0.7;
+}
+.dashboard-table .size { color: var(--slate); font-size: 0.75rem; }
+.dashboard-table .endpoint {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.78rem;
+  color: var(--trace);
+  background: rgba(110, 86, 240, 0.08);
+  padding: 0.25rem 0.6rem;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+.dashboard-table .status {
+  display: inline-flex; align-items: center; gap: 0.35rem;
+  font-size: 0.75rem;
+  color: var(--slate);
+}
+.dashboard-table .status::before {
+  content: '';
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: #28C840;
+}
+.dashboard-footer {
+  padding: 0.6rem 1.25rem;
+  border-top: 1px solid var(--border);
+  font-family: 'DM Mono', monospace;
+  font-size: 0.7rem;
+  color: var(--slate);
+  display: flex; justify-content: space-between;
+}
 
-@keyframes fadeInLine {
-  from { opacity: 0; transform: translateY(4px); }
-  to { opacity: 1; transform: translateY(0); }
+.upload-zone {
+  margin: 0 1.25rem 1.25rem;
+  border: 2px dashed rgba(110, 86, 240, 0.25);
+  border-radius: var(--radius);
+  padding: 1rem;
+  text-align: center;
+  transition: border-color 0.25s, background 0.25s;
+  cursor: default;
 }
-@keyframes blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0; }
+.upload-zone:hover { border-color: var(--trace); background: rgba(110, 86, 240, 0.04); }
+.upload-zone .upload-text {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.8rem;
+  color: var(--slate);
 }
+.upload-zone .upload-text strong { color: var(--trace); }
 
 .section { padding: 5rem 0; }
 .section-label {
@@ -346,14 +380,11 @@ nav .nav-cta:hover { background: #F8B84D; box-shadow: 0 0 20px var(--signal-glow
 }
 .feature-card:hover { border-color: rgba(110, 86, 240, 0.25); background: var(--surface-elevated); }
 .feature-card .icon {
-  width: 42px;
-  height: 42px;
+  width: 42px; height: 42px;
   border-radius: var(--radius);
   background: var(--trace-glow);
   border: 1px solid rgba(110, 86, 240, 0.2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: flex; align-items: center; justify-content: center;
   font-size: 1.25rem;
   margin-bottom: 1.25rem;
   color: var(--trace);
@@ -367,6 +398,54 @@ nav .nav-cta:hover { background: #F8B84D; box-shadow: 0 0 20px var(--signal-glow
 }
 .feature-card p { color: var(--slate); font-size: 0.9375rem; line-height: 1.65; }
 
+.how-it-works {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+  position: relative;
+}
+.how-it-works::before {
+  content: '';
+  position: absolute;
+  top: 36px;
+  left: calc(16.67% + 1rem);
+  right: calc(16.67% + 1rem);
+  height: 1px;
+  background: var(--border);
+  z-index: 0;
+}
+.how-step {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+}
+.how-step .step-marker {
+  width: 72px; height: 72px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.25rem;
+  font-family: 'DM Mono', monospace;
+  font-size: 1.1rem;
+  color: var(--trace);
+  transition: border-color 0.25s, box-shadow 0.25s;
+}
+.how-step:hover .step-marker {
+  border-color: rgba(110, 86, 240, 0.35);
+  box-shadow: 0 0 20px rgba(110, 86, 240, 0.1);
+}
+.how-step h4 {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin-bottom: 0.4rem;
+  color: var(--chalk);
+}
+.how-step p { color: var(--slate); font-size: 0.875rem; line-height: 1.6; }
+
 .cta-section {
   text-align: center;
   padding: 6rem 0;
@@ -375,11 +454,9 @@ nav .nav-cta:hover { background: #F8B84D; box-shadow: 0 0 20px var(--signal-glow
 .cta-section::before {
   content: '';
   position: absolute;
-  top: 0;
-  left: 50%;
+  top: 0; left: 50%;
   transform: translateX(-50%);
-  width: 500px;
-  height: 500px;
+  width: 500px; height: 500px;
   background: radial-gradient(circle, rgba(240, 164, 53, 0.06), transparent 70%);
   pointer-events: none;
 }
@@ -387,29 +464,58 @@ nav .nav-cta:hover { background: #F8B84D; box-shadow: 0 0 20px var(--signal-glow
 .cta-section p {
   color: var(--slate);
   font-size: 1.125rem;
-  margin-bottom: 2rem;
+  margin-bottom: 2.5rem;
   position: relative;
   z-index: 1;
 }
 
-.code-snippet {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.75rem;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 0.75rem 1.25rem;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.875rem;
-  color: var(--chalk);
-  margin-bottom: 2rem;
+.pricing-tease {
+  display: flex;
+  gap: 1.5rem;
+  justify-content: center;
+  max-width: 700px;
+  margin: 4rem auto 0;
   position: relative;
   z-index: 1;
 }
-.code-snippet .dollar { color: var(--trace); user-select: none; }
-.code-snippet .install { color: var(--chalk); }
-.code-snippet .pkg { color: var(--signal); }
+.price-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 2rem;
+  flex: 1;
+  text-align: left;
+  transition: border-color 0.25s;
+}
+.price-card.featured { border-color: rgba(110, 86, 240, 0.3); }
+.price-card h5 {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--slate);
+  margin-bottom: 1rem;
+}
+.price-card .price {
+  font-family: 'DM Mono', monospace;
+  font-size: 2rem;
+  color: var(--chalk);
+  margin-bottom: 0.25rem;
+}
+.price-card .price span { font-size: 0.875rem; color: var(--slate); }
+.price-card .desc {
+  color: var(--slate);
+  font-size: 0.875rem;
+  margin-bottom: 1.25rem;
+  line-height: 1.5;
+}
+.price-card .perk {
+  font-size: 0.8125rem;
+  color: var(--slate);
+  padding: 0.2rem 0;
+  display: flex; align-items: center; gap: 0.5rem;
+}
+.price-card .perk::before { content: '✓'; color: #28C840; font-size: 0.75rem; }
 
 footer {
   border-top: 1px solid var(--border);
@@ -418,13 +524,16 @@ footer {
   font-size: 0.875rem;
 }
 footer .container {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 1rem;
+  display: flex; justify-content: space-between;
+  align-items: center; flex-wrap: wrap; gap: 1rem;
 }
-footer a { color: var(--slate); font-family: 'DM Mono', monospace; font-size: 0.75rem; letter-spacing: 0.03em; text-transform: uppercase; }
+footer a {
+  color: var(--slate);
+  font-family: 'DM Mono', monospace;
+  font-size: 0.75rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
 footer a:hover { color: var(--signal); }
 
 @media (max-width: 768px) {
@@ -433,14 +542,19 @@ footer a:hover { color: var(--signal); }
   nav .nav-links { gap: 1rem; }
   nav .nav-links a:not(.nav-cta) { display: none; }
   .hero { padding: 4rem 0 2rem; }
-  .terminal-body { font-size: 0.7rem; padding: 1rem; }
+  .dashboard { border-radius: var(--radius); }
+  .dashboard-table { font-size: 0.68rem; }
+  .dashboard-table th, .dashboard-table td { padding: 0.5rem 0.75rem; }
+  .dashboard-table .endpoint { font-size: 0.65rem; }
+  .how-it-works { grid-template-columns: 1fr; gap: 2rem; }
+  .how-it-works::before { display: none; }
+  .pricing-tease { flex-direction: column; max-width: 100%; }
   .section { padding: 3rem 0; }
   .features-grid { grid-template-columns: 1fr; }
+  .dashboard-actions { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .terminal-body .line { animation: none; opacity: 1; }
-  .terminal-body .blink { animation: none; }
   *, *::before, *::after { transition-duration: 0s !important; animation-duration: 0s !important; }
 }
 </style>
@@ -451,7 +565,7 @@ footer a:hover { color: var(--signal); }
   <a href="/" class="logo">Adapt</a>
   <div class="nav-links">
     <a href="/docs">Docs</a>
-    <a href="https://github.com/McIndi/adapt" target="_blank" rel="noopener">GitHub</a>
+    <a href="/pricing">Pricing</a>
     <a href="/signin">Sign In</a>
     <a href="/signup" class="nav-cta">Start free</a>
   </div>
@@ -461,77 +575,128 @@ footer a:hover { color: var(--signal); }
   <section class="hero" aria-labelledby="hero-heading">
     <div class="container">
       <h1 id="hero-heading">
-        Your files are<br>
-        already an <span class="highlight">API</span>
+        Upload files.<br>
+        Get an <span class="highlight">API</span>.
       </h1>
       <p class="subtitle">
-        Drop your data files into a folder. Adapt discovers them and gives you
-        REST endpoints, searchable UIs, and role-based access — instantly.
+        Drag your CSV, Excel, or Parquet file into Adapt. We spin up a REST API
+        with auth, search, and a live data browser — instantly. No servers to manage.
       </p>
       <div class="hero-actions">
         <a href="/signup" class="btn-primary">Start free</a>
-        <a href="/docs" class="btn-secondary">pip install adapt-server</a>
+        <a href="/demo" class="btn-secondary">Watch demo</a>
       </div>
 
-      <div class="terminal" aria-label="Terminal demo" role="img">
-        <div class="terminal-header">
-          <span class="terminal-dot red"></span>
-          <span class="terminal-dot yellow"></span>
-          <span class="terminal-dot green"></span>
-          <span class="terminal-title">Terminal — adapt serve</span>
+      <div class="dashboard" aria-label="Platform dashboard" role="img">
+        <div class="dashboard-header">
+          <div class="dashboard-tabs">
+            <span class="dashboard-tab active">My Files</span>
+            <span class="dashboard-tab">API Keys</span>
+            <span class="dashboard-tab">Settings</span>
+          </div>
+          <div class="dashboard-actions">
+            <span class="dashboard-action">+ Upload</span>
+            <span class="dashboard-action">Refresh</span>
+          </div>
         </div>
-        <div class="terminal-body">
-          <div class="line">
-            <span class="prompt">$</span>
-            <span class="cmd">adapt serve ./data</span>
-            <span class="blink">▌</span>
-          </div>
-          <div class="line">
-            <span class="dim">&nbsp;</span>
-          </div>
-          <div class="line">
-            <span class="file">● employees.csv</span>
-            <span class="arrow">→</span>
-            <span class="endpoint">/api/employees</span>
-            <span class="dim">CRUD + DataTable</span>
-          </div>
-          <div class="line">
-            <span class="file">● sales.xlsx</span>
-            <span class="arrow">→</span>
-            <span class="endpoint">/api/sales</span>
-            <span class="dim">+ 3 sheets discovered</span>
-          </div>
-          <div class="line">
-            <span class="file">● metrics.parquet</span>
-            <span class="arrow">→</span>
-            <span class="endpoint">/api/metrics</span>
-            <span class="dim">1.2M rows indexed</span>
-          </div>
-          <div class="line">
-            <span class="file">● video.mp4</span>
-            <span class="arrow">→</span>
-            <span class="endpoint">/api/video</span>
-            <span class="dim">streaming + thumbnails</span>
-          </div>
-          <div class="line">
-            <span class="file">● readme.md</span>
-            <span class="arrow">→</span>
-            <span class="endpoint">/ui/readme</span>
-            <span class="dim">rendered page</span>
-          </div>
-          <div class="line">
-            <span class="file">● analytics.py</span>
-            <span class="arrow">→</span>
-            <span class="endpoint">/api/stats</span>
-            <span class="dim">custom router loaded</span>
-          </div>
-          <div class="line">
-            <span class="dim">&nbsp;</span>
-          </div>
-          <div class="line">
-            <span class="check">✓</span>
-            <span class="success">6 resources discovered. Server running on http://localhost:8000</span>
-          </div>
+
+        <div class="upload-zone">
+          <span class="upload-text">Drop files here or <strong>browse</strong> — CSV, XLSX, Parquet, MP4, and 17 more formats</span>
+        </div>
+
+        <table class="dashboard-table" aria-label="Your files and their generated API endpoints">
+          <thead>
+            <tr>
+              <th>File</th>
+              <th>Size</th>
+              <th>API endpoint</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                <span class="filename">
+                  <span class="file-icon">📊</span> employees.csv
+                </span>
+              </td>
+              <td><span class="size">284 KB</span></td>
+              <td><span class="endpoint">/api/employees</span></td>
+              <td><span class="status">Live</span></td>
+            </tr>
+            <tr>
+              <td>
+                <span class="filename">
+                  <span class="file-icon">📊</span> sales.xlsx
+                </span>
+              </td>
+              <td><span class="size">1.4 MB</span></td>
+              <td><span class="endpoint">/api/sales</span></td>
+              <td><span class="status">Live</span></td>
+            </tr>
+            <tr>
+              <td>
+                <span class="filename">
+                  <span class="file-icon">📊</span> metrics.parquet
+                </span>
+              </td>
+              <td><span class="size">48 MB</span></td>
+              <td><span class="endpoint">/api/metrics</span></td>
+              <td><span class="status">Live</span></td>
+            </tr>
+            <tr>
+              <td>
+                <span class="filename">
+                  <span class="file-icon">📄</span> readme.md
+                </span>
+              </td>
+              <td><span class="size">12 KB</span></td>
+              <td><span class="endpoint">/ui/readme</span></td>
+              <td><span class="status">Live</span></td>
+            </tr>
+            <tr>
+              <td>
+                <span class="filename">
+                  <span class="file-icon">🎬</span> demo.mp4
+                </span>
+              </td>
+              <td><span class="size">62 MB</span></td>
+              <td><span class="endpoint">/api/demo</span></td>
+              <td><span class="status">Live</span></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="dashboard-footer">
+          <span>5 resources</span>
+          <span>adapt.cloud/your-workspace</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="how-heading">
+    <div class="container">
+      <p class="section-label">How it works</p>
+      <h2 id="how-heading">Three steps, zero config</h2>
+      <p class="lead">
+        No YAML. No Docker. No ORM models. Just upload and go.
+      </p>
+      <div class="how-it-works">
+        <div class="how-step">
+          <div class="step-marker" aria-hidden="true">1</div>
+          <h4>Upload your files</h4>
+          <p>Drag any supported file into your workspace — CSV, Excel, Parquet, Markdown, video, audio, and more.</p>
+        </div>
+        <div class="how-step">
+          <div class="step-marker" aria-hidden="true">2</div>
+          <h4>We generate the API</h4>
+          <p>Adapt detects each file's format, builds REST endpoints with filtering and pagination, and creates a data browser UI.</p>
+        </div>
+        <div class="how-step">
+          <div class="step-marker" aria-hidden="true">3</div>
+          <h4>Share with your team</h4>
+          <p>Invite teammates, set permissions per resource, and let everyone access data through the API or the browser UI.</p>
         </div>
       </div>
     </div>
@@ -540,10 +705,10 @@ footer a:hover { color: var(--signal); }
   <section class="section" aria-labelledby="formats-heading">
     <div class="container">
       <p class="section-label">Supported formats</p>
-      <h2 id="formats-heading">What becomes what</h2>
+      <h2 id="formats-heading">Your file. Our infrastructure.</h2>
       <p class="lead">
-        Every file extension maps to a plugin that knows how to read it, serve it,
-        and build a UI for it. Twenty-one formats and counting.
+        Twenty-one formats, each with its own generated API, UI, and search index.
+        Upload anything — we handle the rest.
       </p>
       <div class="transform-grid">
         <div class="transform-item">
@@ -613,41 +778,70 @@ footer a:hover { color: var(--signal); }
   <section class="section" aria-labelledby="features-heading">
     <div class="container">
       <p class="section-label">Everything included</p>
-      <h2 id="features-heading">One server, the whole stack</h2>
+      <h2 id="features-heading">We run the servers. You get the value.</h2>
       <p class="lead">
-        Adapt isn't just an API generator. It's a complete platform with
-        auth, search, admin tools, and an MCP server for AI agents.
+        Adapt is a complete backend platform. Auth, search, admin, permissions —
+        every API we generate comes with the full stack.
       </p>
       <div class="features-grid">
         <div class="feature-card">
           <div class="icon" aria-hidden="true">{&nbsp;}</div>
-          <h4>REST API auto-generated</h4>
-          <p>Every dataset gets full CRUD endpoints with filtering, sorting, pagination, and schema validation — no code required.</p>
+          <h4>REST API, auto-generated</h4>
+          <p>Every dataset gets CRUD endpoints with filtering, sorting, pagination, and schema validation. No code. No config.</p>
         </div>
         <div class="feature-card">
           <div class="icon" aria-hidden="true">▦</div>
-          <h4>Interactive DataTables</h4>
-          <p>Tabular data gets a browser UI with inline editing, column sorting, and search. Share a URL, not a CSV file.</p>
+          <h4>Interactive data browser</h4>
+          <p>Tabular data gets a shareable browser UI with inline editing, column sorting, and search. Send a URL, not a file.</p>
         </div>
         <div class="feature-card">
           <div class="icon" aria-hidden="true">🔐</div>
-          <h4>Auth & RBAC built in</h4>
-          <p>Session-based auth, API keys, users, groups, and per-resource permissions. Secure by default, configurable when you need it.</p>
+          <h4>Auth & permissions included</h4>
+          <p>Session auth, API keys, user groups, and per-resource access control. Secure by default, customizable when needed.</p>
         </div>
         <div class="feature-card">
           <div class="icon" aria-hidden="true">⌕</div>
           <h4>Full-text search</h4>
-          <p>Search across every resource — datasets, documents, media metadata — with permission-filtered results via SQLite FTS5.</p>
+          <p>One search box across all your data — datasets, documents, media metadata — with results filtered by your permissions.</p>
         </div>
         <div class="feature-card">
           <div class="icon" aria-hidden="true">◈</div>
-          <h4>MCP server for AI agents</h4>
-          <p>Give Claude Code, Cursor, and other AI tools structured access to your data through the built-in MCP server at /mcp.</p>
+          <h4>AI agent ready</h4>
+          <p>Built-in MCP server lets Claude Code, Cursor, and other AI tools query your data with structured tool access.</p>
         </div>
         <div class="feature-card">
           <div class="icon" aria-hidden="true">▶</div>
           <h4>Media streaming</h4>
-          <p>Audio and video files get streaming endpoints, metadata extraction, thumbnail generation, and a browser gallery.</p>
+          <p>Video and audio files get streaming endpoints, automatic thumbnails, metadata extraction, and a gallery browser.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="pricing-heading">
+    <div class="container">
+      <p class="section-label">Pricing</p>
+      <h2 id="pricing-heading" style="text-align:center">Start free. Scale when you're ready.</h2>
+      <div class="pricing-tease">
+        <div class="price-card">
+          <h5>Free</h5>
+          <div class="price">$0<span>/month</span></div>
+          <p class="desc">For individuals and small projects getting started.</p>
+          <div class="perk">5 files</div>
+          <div class="perk">100 MB total storage</div>
+          <div class="perk">REST API + DataTable UI</div>
+          <div class="perk">Basic auth</div>
+        </div>
+        <div class="price-card featured">
+          <h5>Pro</h5>
+          <div class="price">$29<span>/month</span></div>
+          <p class="desc">For teams that need scale and collaboration.</p>
+          <div class="perk">Unlimited files</div>
+          <div class="perk">10 GB storage</div>
+          <div class="perk">Full RBAC + API keys</div>
+          <div class="perk">Full-text search</div>
+          <div class="perk">MCP server for AI agents</div>
+          <div class="perk">Priority support</div>
         </div>
       </div>
     </div>
@@ -655,14 +849,8 @@ footer a:hover { color: var(--signal); }
 
   <section class="cta-section" aria-labelledby="cta-heading">
     <div class="container">
-      <h2 id="cta-heading">One command. Everything else is automatic.</h2>
-      <p>No config files. No boilerplate. No ORM models to write.</p>
-      <div class="code-snippet" aria-label="Installation command">
-        <span class="dollar">$</span>
-        <span class="install">pip install</span>
-        <span class="pkg">adapt-server</span>
-      </div>
-      <br>
+      <h2 id="cta-heading">Your files are already an API.<br>Let us prove it.</h2>
+      <p>Upload your first file in under a minute. No setup, no servers, no surprises.</p>
       <a href="/signup" class="btn-primary">Start free</a>
     </div>
   </section>
@@ -673,7 +861,8 @@ footer a:hover { color: var(--signal); }
     <span>Adapt &copy; 2026</span>
     <div style="display:flex;gap:1.5rem;">
       <a href="/docs">Docs</a>
-      <a href="https://github.com/McIndi/adapt" target="_blank" rel="noopener">GitHub</a>
+      <a href="/pricing">Pricing</a>
+      <a href="https://github.com/McIndi/adapt" target="_blank" rel="noopener">Open Source</a>
       <a href="/security">Security</a>
     </div>
   </div>
