@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Adapt — Your files are already an API</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500&family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --void: #0A0812;
+  --surface: #131024;
+  --surface-elevated: #1C1736;
+  --chalk: #EDE8F4;
+  --slate: #857FA0;
+  --signal: #F0A435;
+  --signal-glow: rgba(240, 164, 53, 0.15);
+  --trace: #6E56F0;
+  --trace-glow: rgba(110, 86, 240, 0.12);
+  --border: rgba(133, 127, 160, 0.15);
+  --radius: 8px;
+  --radius-lg: 14px;
+}
+
+html {
+  background: var(--void);
+  color: var(--chalk);
+  font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  min-height: 100vh;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 0%, rgba(110, 86, 240, 0.06), transparent),
+    radial-gradient(ellipse 50% 40% at 80% 60%, rgba(240, 164, 53, 0.04), transparent);
+}
+
+::selection { background: var(--signal); color: var(--void); }
+
+h1, h2, h3 { font-family: 'DM Mono', 'JetBrains Mono', monospace; font-weight: 400; letter-spacing: -0.02em; }
+h1 { font-size: clamp(2.5rem, 6vw, 5.5rem); line-height: 1.08; }
+h2 { font-size: clamp(1.75rem, 3.5vw, 2.75rem); line-height: 1.15; }
+h3 { font-size: 1.125rem; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; color: var(--slate); }
+
+a { color: var(--trace); text-decoration: none; transition: color 0.2s; }
+a:hover { color: var(--signal); }
+a:focus-visible {
+  outline: 2px solid var(--signal);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+.container {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 2rem;
+}
+
+.logo {
+  font-family: 'DM Mono', monospace;
+  font-size: 1.25rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  color: var(--chalk);
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.logo::before {
+  content: '';
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  background: var(--signal);
+  border-radius: 2px;
+}
+
+nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem 2rem;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  backdrop-filter: blur(16px);
+  background: rgba(10, 8, 18, 0.75);
+  border-bottom: 1px solid var(--border);
+}
+nav .nav-links { display: flex; align-items: center; gap: 2rem; }
+nav .nav-links a {
+  color: var(--slate);
+  font-size: 0.9375rem;
+  font-family: 'DM Mono', monospace;
+  font-size: 0.8125rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+nav .nav-cta {
+  background: var(--signal);
+  color: var(--void);
+  padding: 0.5rem 1.25rem;
+  border-radius: var(--radius);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+  transition: background 0.2s, box-shadow 0.2s;
+}
+nav .nav-cta:hover { background: #F8B84D; box-shadow: 0 0 20px var(--signal-glow); color: var(--void); }
+
+.hero {
+  padding: 6rem 0 4rem;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.hero::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, rgba(110, 86, 240, 0.08), transparent 70%);
+  pointer-events: none;
+}
+.hero h1 {
+  position: relative;
+  z-index: 1;
+  margin-bottom: 1.5rem;
+}
+.hero h1 .highlight {
+  color: var(--signal);
+  position: relative;
+}
+.hero h1 .highlight::after {
+  content: '';
+  position: absolute;
+  bottom: 4px;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: var(--signal);
+  opacity: 0.3;
+  border-radius: 2px;
+}
+.hero .subtitle {
+  font-size: clamp(1rem, 2vw, 1.25rem);
+  color: var(--slate);
+  max-width: 560px;
+  margin: 0 auto 2.5rem;
+  line-height: 1.7;
+}
+
+.hero-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 4rem;
+}
+.btn-primary {
+  background: var(--signal);
+  color: var(--void);
+  padding: 0.875rem 2rem;
+  border-radius: var(--radius);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s, box-shadow 0.2s, transform 0.15s;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.btn-primary:hover { background: #F8B84D; box-shadow: 0 0 24px var(--signal-glow); transform: translateY(-1px); color: var(--void); }
+.btn-primary:focus-visible { outline: 2px solid var(--signal); outline-offset: 3px; }
+
+.btn-secondary {
+  background: transparent;
+  color: var(--chalk);
+  padding: 0.875rem 2rem;
+  border-radius: var(--radius);
+  font-family: 'DM Mono', monospace;
+  font-size: 0.875rem;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.btn-secondary:hover { border-color: var(--trace); background: var(--trace-glow); color: var(--chalk); }
+.btn-secondary:focus-visible { outline: 2px solid var(--signal); outline-offset: 3px; }
+
+.terminal {
+  max-width: 720px;
+  margin: 0 auto;
+  background: #0D0B18;
+  border: 1px solid rgba(110, 86, 240, 0.2);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: 0 0 60px rgba(110, 86, 240, 0.08), 0 20px 60px rgba(0, 0, 0, 0.4);
+  position: relative;
+  z-index: 1;
+}
+.terminal-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: rgba(19, 16, 36, 0.6);
+  border-bottom: 1px solid var(--border);
+}
+.terminal-dot { width: 10px; height: 10px; border-radius: 50%; }
+.terminal-dot.red { background: #FF5F57; }
+.terminal-dot.yellow { background: #FEBC2E; }
+.terminal-dot.green { background: #28C840; }
+.terminal-title {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.75rem;
+  color: var(--slate);
+  margin-left: 0.5rem;
+}
+.terminal-body {
+  padding: 1.5rem;
+  font-family: 'JetBrains Mono', 'DM Mono', monospace;
+  font-size: 0.8125rem;
+  line-height: 1.8;
+  min-height: 240px;
+}
+.terminal-body .line { display: flex; align-items: baseline; gap: 0.5rem; opacity: 0; animation: fadeInLine 0.3s ease forwards; }
+.terminal-body .line:nth-child(1) { animation-delay: 0.3s; }
+.terminal-body .line:nth-child(2) { animation-delay: 1.5s; }
+.terminal-body .line:nth-child(3) { animation-delay: 2.2s; }
+.terminal-body .line:nth-child(4) { animation-delay: 2.7s; }
+.terminal-body .line:nth-child(5) { animation-delay: 3.2s; }
+.terminal-body .line:nth-child(6) { animation-delay: 3.7s; }
+.terminal-body .line:nth-child(7) { animation-delay: 4.2s; }
+.terminal-body .line:nth-child(8) { animation-delay: 4.7s; }
+.terminal-body .line:nth-child(9) { animation-delay: 5.0s; }
+.terminal-body .prompt { color: var(--trace); user-select: none; }
+.terminal-body .cmd { color: var(--chalk); }
+.terminal-body .file { color: var(--signal); }
+.terminal-body .arrow { color: var(--slate); margin: 0 0.25rem; }
+.terminal-body .endpoint { color: var(--trace); }
+.terminal-body .check { color: #28C840; }
+.terminal-body .dim { color: var(--slate); }
+.terminal-body .blink { animation: blink 1s step-end infinite; }
+.terminal-body .success { color: #28C840; font-weight: 500; }
+
+@keyframes fadeInLine {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.section { padding: 5rem 0; }
+.section-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--signal);
+  margin-bottom: 1rem;
+}
+.section h2 { margin-bottom: 1rem; }
+.section .lead {
+  color: var(--slate);
+  font-size: 1.125rem;
+  max-width: 600px;
+  margin-bottom: 3rem;
+}
+
+.transform-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+.transform-item {
+  background: var(--surface);
+  padding: 1.75rem 1.25rem;
+  text-align: center;
+  transition: background 0.25s;
+}
+.transform-item:hover { background: var(--surface-elevated); }
+.transform-item .ext {
+  font-family: 'DM Mono', monospace;
+  font-size: 1.5rem;
+  font-weight: 500;
+  color: var(--chalk);
+  margin-bottom: 0.35rem;
+}
+.transform-item .label {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.6875rem;
+  color: var(--slate);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.transform-item .arrow-icon {
+  display: block;
+  color: var(--signal);
+  font-size: 1.125rem;
+  margin: 0.5rem 0;
+  font-family: 'JetBrains Mono', monospace;
+}
+.transform-item .result {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.8125rem;
+  color: var(--trace);
+  font-weight: 500;
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 2rem;
+}
+.feature-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 2rem;
+  transition: border-color 0.25s, background 0.25s;
+}
+.feature-card:hover { border-color: rgba(110, 86, 240, 0.25); background: var(--surface-elevated); }
+.feature-card .icon {
+  width: 42px;
+  height: 42px;
+  border-radius: var(--radius);
+  background: var(--trace-glow);
+  border: 1px solid rgba(110, 86, 240, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  margin-bottom: 1.25rem;
+  color: var(--trace);
+}
+.feature-card h4 {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  color: var(--chalk);
+}
+.feature-card p { color: var(--slate); font-size: 0.9375rem; line-height: 1.65; }
+
+.cta-section {
+  text-align: center;
+  padding: 6rem 0;
+  position: relative;
+}
+.cta-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(240, 164, 53, 0.06), transparent 70%);
+  pointer-events: none;
+}
+.cta-section h2 { margin-bottom: 1rem; position: relative; z-index: 1; }
+.cta-section p {
+  color: var(--slate);
+  font-size: 1.125rem;
+  margin-bottom: 2rem;
+  position: relative;
+  z-index: 1;
+}
+
+.code-snippet {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.75rem 1.25rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.875rem;
+  color: var(--chalk);
+  margin-bottom: 2rem;
+  position: relative;
+  z-index: 1;
+}
+.code-snippet .dollar { color: var(--trace); user-select: none; }
+.code-snippet .install { color: var(--chalk); }
+.code-snippet .pkg { color: var(--signal); }
+
+footer {
+  border-top: 1px solid var(--border);
+  padding: 3rem 0;
+  color: var(--slate);
+  font-size: 0.875rem;
+}
+footer .container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+footer a { color: var(--slate); font-family: 'DM Mono', monospace; font-size: 0.75rem; letter-spacing: 0.03em; text-transform: uppercase; }
+footer a:hover { color: var(--signal); }
+
+@media (max-width: 768px) {
+  .container { padding: 0 1.25rem; }
+  nav { padding: 1rem 1.25rem; }
+  nav .nav-links { gap: 1rem; }
+  nav .nav-links a:not(.nav-cta) { display: none; }
+  .hero { padding: 4rem 0 2rem; }
+  .terminal-body { font-size: 0.7rem; padding: 1rem; }
+  .section { padding: 3rem 0; }
+  .features-grid { grid-template-columns: 1fr; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .terminal-body .line { animation: none; opacity: 1; }
+  .terminal-body .blink { animation: none; }
+  *, *::before, *::after { transition-duration: 0s !important; animation-duration: 0s !important; }
+}
+</style>
+</head>
+<body>
+
+<nav aria-label="Main navigation">
+  <a href="/" class="logo">Adapt</a>
+  <div class="nav-links">
+    <a href="/docs">Docs</a>
+    <a href="https://github.com/McIndi/adapt" target="_blank" rel="noopener">GitHub</a>
+    <a href="/signin">Sign In</a>
+    <a href="/signup" class="nav-cta">Start free</a>
+  </div>
+</nav>
+
+<main>
+  <section class="hero" aria-labelledby="hero-heading">
+    <div class="container">
+      <h1 id="hero-heading">
+        Your files are<br>
+        already an <span class="highlight">API</span>
+      </h1>
+      <p class="subtitle">
+        Drop your data files into a folder. Adapt discovers them and gives you
+        REST endpoints, searchable UIs, and role-based access — instantly.
+      </p>
+      <div class="hero-actions">
+        <a href="/signup" class="btn-primary">Start free</a>
+        <a href="/docs" class="btn-secondary">pip install adapt-server</a>
+      </div>
+
+      <div class="terminal" aria-label="Terminal demo" role="img">
+        <div class="terminal-header">
+          <span class="terminal-dot red"></span>
+          <span class="terminal-dot yellow"></span>
+          <span class="terminal-dot green"></span>
+          <span class="terminal-title">Terminal — adapt serve</span>
+        </div>
+        <div class="terminal-body">
+          <div class="line">
+            <span class="prompt">$</span>
+            <span class="cmd">adapt serve ./data</span>
+            <span class="blink">▌</span>
+          </div>
+          <div class="line">
+            <span class="dim">&nbsp;</span>
+          </div>
+          <div class="line">
+            <span class="file">● employees.csv</span>
+            <span class="arrow">→</span>
+            <span class="endpoint">/api/employees</span>
+            <span class="dim">CRUD + DataTable</span>
+          </div>
+          <div class="line">
+            <span class="file">● sales.xlsx</span>
+            <span class="arrow">→</span>
+            <span class="endpoint">/api/sales</span>
+            <span class="dim">+ 3 sheets discovered</span>
+          </div>
+          <div class="line">
+            <span class="file">● metrics.parquet</span>
+            <span class="arrow">→</span>
+            <span class="endpoint">/api/metrics</span>
+            <span class="dim">1.2M rows indexed</span>
+          </div>
+          <div class="line">
+            <span class="file">● video.mp4</span>
+            <span class="arrow">→</span>
+            <span class="endpoint">/api/video</span>
+            <span class="dim">streaming + thumbnails</span>
+          </div>
+          <div class="line">
+            <span class="file">● readme.md</span>
+            <span class="arrow">→</span>
+            <span class="endpoint">/ui/readme</span>
+            <span class="dim">rendered page</span>
+          </div>
+          <div class="line">
+            <span class="file">● analytics.py</span>
+            <span class="arrow">→</span>
+            <span class="endpoint">/api/stats</span>
+            <span class="dim">custom router loaded</span>
+          </div>
+          <div class="line">
+            <span class="dim">&nbsp;</span>
+          </div>
+          <div class="line">
+            <span class="check">✓</span>
+            <span class="success">6 resources discovered. Server running on http://localhost:8000</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="formats-heading">
+    <div class="container">
+      <p class="section-label">Supported formats</p>
+      <h2 id="formats-heading">What becomes what</h2>
+      <p class="lead">
+        Every file extension maps to a plugin that knows how to read it, serve it,
+        and build a UI for it. Twenty-one formats and counting.
+      </p>
+      <div class="transform-grid">
+        <div class="transform-item">
+          <div class="ext">.csv</div>
+          <span class="arrow-icon" aria-hidden="true">→</span>
+          <div class="result">REST API</div>
+          <div class="label">CRUD + DataTable</div>
+        </div>
+        <div class="transform-item">
+          <div class="ext">.xlsx</div>
+          <span class="arrow-icon" aria-hidden="true">→</span>
+          <div class="result">REST API</div>
+          <div class="label">Multi-sheet</div>
+        </div>
+        <div class="transform-item">
+          <div class="ext">.parquet</div>
+          <span class="arrow-icon" aria-hidden="true">→</span>
+          <div class="result">REST API</div>
+          <div class="label">Columnar</div>
+        </div>
+        <div class="transform-item">
+          <div class="ext">.md</div>
+          <span class="arrow-icon" aria-hidden="true">→</span>
+          <div class="result">HTML Page</div>
+          <div class="label">Rendered</div>
+        </div>
+        <div class="transform-item">
+          <div class="ext">.mp4</div>
+          <span class="arrow-icon" aria-hidden="true">→</span>
+          <div class="result">Stream</div>
+          <div class="label">Player + Gallery</div>
+        </div>
+        <div class="transform-item">
+          <div class="ext">.mp3</div>
+          <span class="arrow-icon" aria-hidden="true">→</span>
+          <div class="result">Stream</div>
+          <div class="label">Metadata + Art</div>
+        </div>
+        <div class="transform-item">
+          <div class="ext">.py</div>
+          <span class="arrow-icon" aria-hidden="true">→</span>
+          <div class="result">Router</div>
+          <div class="label">Custom endpoints</div>
+        </div>
+        <div class="transform-item">
+          <div class="ext">.json</div>
+          <span class="arrow-icon" aria-hidden="true">→</span>
+          <div class="result">File</div>
+          <div class="label">Served raw</div>
+        </div>
+        <div class="transform-item">
+          <div class="ext">.pdf</div>
+          <span class="arrow-icon" aria-hidden="true">→</span>
+          <div class="result">File</div>
+          <div class="label">Downloadable</div>
+        </div>
+        <div class="transform-item">
+          <div class="ext">.html</div>
+          <span class="arrow-icon" aria-hidden="true">→</span>
+          <div class="result">Page</div>
+          <div class="label">Served as-is</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="features-heading">
+    <div class="container">
+      <p class="section-label">Everything included</p>
+      <h2 id="features-heading">One server, the whole stack</h2>
+      <p class="lead">
+        Adapt isn't just an API generator. It's a complete platform with
+        auth, search, admin tools, and an MCP server for AI agents.
+      </p>
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="icon" aria-hidden="true">{&nbsp;}</div>
+          <h4>REST API auto-generated</h4>
+          <p>Every dataset gets full CRUD endpoints with filtering, sorting, pagination, and schema validation — no code required.</p>
+        </div>
+        <div class="feature-card">
+          <div class="icon" aria-hidden="true">▦</div>
+          <h4>Interactive DataTables</h4>
+          <p>Tabular data gets a browser UI with inline editing, column sorting, and search. Share a URL, not a CSV file.</p>
+        </div>
+        <div class="feature-card">
+          <div class="icon" aria-hidden="true">🔐</div>
+          <h4>Auth & RBAC built in</h4>
+          <p>Session-based auth, API keys, users, groups, and per-resource permissions. Secure by default, configurable when you need it.</p>
+        </div>
+        <div class="feature-card">
+          <div class="icon" aria-hidden="true">⌕</div>
+          <h4>Full-text search</h4>
+          <p>Search across every resource — datasets, documents, media metadata — with permission-filtered results via SQLite FTS5.</p>
+        </div>
+        <div class="feature-card">
+          <div class="icon" aria-hidden="true">◈</div>
+          <h4>MCP server for AI agents</h4>
+          <p>Give Claude Code, Cursor, and other AI tools structured access to your data through the built-in MCP server at /mcp.</p>
+        </div>
+        <div class="feature-card">
+          <div class="icon" aria-hidden="true">▶</div>
+          <h4>Media streaming</h4>
+          <p>Audio and video files get streaming endpoints, metadata extraction, thumbnail generation, and a browser gallery.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="cta-section" aria-labelledby="cta-heading">
+    <div class="container">
+      <h2 id="cta-heading">One command. Everything else is automatic.</h2>
+      <p>No config files. No boilerplate. No ORM models to write.</p>
+      <div class="code-snippet" aria-label="Installation command">
+        <span class="dollar">$</span>
+        <span class="install">pip install</span>
+        <span class="pkg">adapt-server</span>
+      </div>
+      <br>
+      <a href="/signup" class="btn-primary">Start free</a>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="container">
+    <span>Adapt &copy; 2026</span>
+    <div style="display:flex;gap:1.5rem;">
+      <a href="/docs">Docs</a>
+      <a href="https://github.com/McIndi/adapt" target="_blank" rel="noopener">GitHub</a>
+      <a href="/security">Security</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
